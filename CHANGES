@@ -1,0 +1,644 @@
+3.6.10
+
+- Now ScatteredArcsASCIIGraph propagates BatchGraph's copiable iterators.
+  As a consequence, compression will happen in parallel when possible.
+
+3.6.9
+
+- Updated licensing info in the POM.
+
+3.6.8
+
+- Removed (almost) unused dependencies.
+
+- Upgraded to newest versions of Apache Commons.
+
+3.6.7
+
+- OSGi metadata and default modularization.
+
+- Manual reduction in strength in arithmetic operations everywhere.
+
+3.6.6
+
+- WebGraph is now dually licensed under the Lesser GNU Public License 2.1+
+  or the Apache Software License 2.0.
+
+- Added automatic module name.
+
+3.6.5
+
+- Efficiency improvements.
+
+- Transform provides direct support to compute efficiently the simple version
+  of a graph, either directly or via a precomputed transpose.
+
+3.6.4
+
+- Fixed SLF4J dependencies (again).
+
+3.6.3
+
+- Fixed build.xml: moved to Java 9 (following Sux4J), and now use the
+  classifier in naming artifacts.
+
+3.6.2
+
+- New tool to export in GraphViz's .dot format.
+
+- ScatteredArcsASCIIGraph can now accept zipped files. Thanks to Thibault
+  Allançon for implementing this feature.
+
+3.6.1
+
+- Removed spurious debug print.
+
+3.6.0
+
+- Java 8-only.
+
+- Fixed obscure bug in ShiftByOneArcListASCIIGraph: if the arc list
+  was specified on the command line (no -1 option) and more than
+  one core was available, the graph would have not been shifted.
+  Thanks to Luca Prigioniero for reporting this bug.
+
+3.5.3
+
+- Fixed lack of implementation of loadMapped() in ImmutableSubgraph.
+  Thanks to Massimo Santini and Pierlauro Sciarelli for reporting this bug.
+
+3.5.2
+
+- Removed last dependency from COLT. Unfortunately, ErdosRenyiGraph now
+  uses a different binomial distribution generator, so generated graphs
+  will be different, even using the same seed.
+
+- New implementations by Michele Borassi of the SumSweep algorithm for
+  diameter, radius and eccentricities of directed and undirected graphs.
+
+3.5.1
+
+- New TopKGeometricCentrality class by Michele Borassi.
+
+3.5.0
+
+- New mechanism for parallel compression based on the notion of "copiable
+  iterators". Implemented in BVGraph and all derivative classes (e.g.,
+  transposed graphs).
+
+- HyperBall now accepts weights on the nodes.
+
+3.4.3
+
+- The family of loadSequential() methods have been deprecated, and
+  replaced in code by loadOffline() or loadMapped().
+
+3.4.2
+
+- Fixed dependencies.
+
+3.4.1
+
+- Significantly improved performance of HyperBall on graphs with a highly
+  skewed (e.g., heavy-tailed) outdegree distribution (e.g., transposed web
+  graphs).
+
+- Fixed wrong estimation of memory used.
+
+- Now ConnectedComponents writes results using "wcc" instead of "scc".
+
+3.4.0
+
+- Fixed problem with obsolete BitSet used to store buckets in Stats.
+
+- New parallel classes to compute geometric centralities and betweenness.
+
+3.3.3
+
+- Regressed to fastutil's quicksort calls in case of array fragments. Java
+  7's Arrays.sort() has a memory bug that was killing the performance of a
+  number of methods.
+
+3.3.2
+
+- We now distribute SpeedTest, hoping to improve the quality of benchmarks
+  in the literature.
+
+3.3.1
+
+- Adapted to new DSI utilities.
+
+3.3.0
+
+- HyperBall sports a new adaptive decomposition scheme that 
+  is based on the number of arcs to be scanned, rather than
+  on the number of nodes.
+
+- Fixed bug in the computation of the buckets. If you have used the new
+  iterative implementation of Tarjan's algorithm
+  (StronglyConnectedComponents) to compute buckets please recompute them.
+
+3.2.1
+
+- New iterative implementation of Tarjan's algorithm.
+
+- HyperBall can now compute Nieminen's centrality.
+
+3.2.0
+
+- New selectable upper bound for EFGraph makes it possible to build
+  "fake" graphs in whcih successors are greater than or equal to
+  the number of nodes (this was already possible with BVGraph). Useful
+  for incremental graph construction.
+
+- New IncrementalImmutableSequentialGraph adapter, which provides an
+  inversion of control for storing graphs: you supply, one at a time,
+  the successor list of each node.
+
+3.1.0
+
+- New HyperBall implementation of the HyperANF idea. It computes several
+  kind of geometric centrality and once in systolic local mode uses time
+  proportional to the number of edges causing a modification, setting in
+  practice the expected run time to the theoretical bound O(m log n).
+
+- Now terminal nodes have closeness equal to zero (terminal nodes already
+  had Lin's centrality equal to one).
+
+- The DecimalFormat object used to print data is has now a fixed US locale.
+
+- New EFGraph implementation (backported from the big version) using the
+  Elias-Fano representation of monotone sequences. Compression is not so
+  good, but successor enumeration is blazingly fast and the implementation
+  returns a skippable iterator which provides constant-time search of
+  nodes by lower bound.
+
+- Both BVGraph and EFGraph have outdegree caching and exact unwrapping
+  of successorArray(). This should bring performance improvements.
+
+3.0.9
+
+- We switched to SLF4J for logging.
+
+3.0.8
+
+- Now Webgraph includes an adapter towards the Jung graph analysis
+  framework. The main method of the class can write immutable graphs
+  into Pajek format.
+
+3.0.7
+
+- Now ScatteredArcsASCIIGraph accepts a translation function from
+  node identifiers to node numbers.
+
+3.0.5
+
+- New ImmutableGraph.outdegrees() method that exposes the degrees of a graph
+  as an IntIterator.
+
+- RandomGraph removed.  
+
+- ErdosRenyiGraph and almost all transformed graphs now support copy().
+
+- New Transform.NodeClassFilter.
+
+3.0.2
+
+- A new class performs parallel breadth-first visits. NeighbourhoodFunction
+  now uses it.
+
+- A new class DoubleSweepFringeDiameter computes heuristically the
+  diameter of symmetric graphs using parallel breadth-first visits.
+
+- A new class ConnectedComponents computes the connected components of
+  symmetric graphs using parallel breadth-virst visits.
+
+- Fixed in ScatteredArcsASCIIGraph a bug (inherited from fastutil) that
+  was generating spurious nodes for graphs with more than 100 million
+  nodes.
+
+- Moved unit tests to Junit4.
+
+- Fixed bug in mapOffline() that was causing some spurious zero-degree
+  nodes to be part of the graph if a tail of nodes of the original graph
+  was erased.
+
+- Fixed rare race condition in HyperANF external executions using less
+  than 64 registers.
+
+- New method to compute the median of all distances.
+
+- HyperApproximateNeighbourhoodFunction now handles graphs that do not
+  implement numArcs().
+
+- Major revamp of ImmutableSubgraph, which now uses an additional integer
+  per supergraph node, but it's much faster.
+
+- New subclass of ImmutabeSubgraph that automatically builds a subgraph
+  formed by nodes with outdegree in a specified range.
+
+- ErdosRenyiGraph is now an ImmutableGraph.
+
+- New class for checks.
+
+- HyperApproximateNeighbourhoodFunction can now be reused by calling
+  init(seed).
+
+3.0.1
+
+- We now try to adapt classes from the big version if possible.
+
+- Offset deltas can now be long (in case you have really crazy graphs).
+
+3.0
+
+- WARNING: This release has minor binary incompatibilities with previous
+  releases, mainly due to the move from the interface
+  it.unimi.dsi.util.LongBigList to the now standard
+  it.unimi.dsi.fasutil.longs.LongBigList. It is part of a parallel release
+  of fastutil, the DSI Utilities, Sux4J, MG4J, WebGraph, etc. that were
+  all modified to fit the new interface, and that prepare the way for our
+  "big" versions, that is, supporting >2^31 entries in arrays (simulated),
+  elements in lists, terms, documents, nodes, etc. Please read our (short)
+  "Moving Java to Big Data" document (JavaBig.pdf) for details.
+
+- We now require Java 6.
+
+- New mapOffline method for mapping large graphs.
+
+- All offline transformation methods now compress their batches; the
+  resulting batch size is comparable to the size of the BVGraph
+  representation with copying disabled.
+
+- Now we never resort to the ImmutableGraph implementation of
+  NodeIterator when iterating over an ImmutableSubgraph if
+  the supergraph does not implement random access. We used to
+  do it when the graph was very sparse, but not checking for
+  random access was not a good idea.
+
+- The computation of the ratio w.r.t. the information-theoretical
+  lower bound (associated to the key "compratio" in the property file of a
+  graph) was wrong and has been fixed.
+
+- A number of classes deal with exact and approximate computation of
+  the neighbourhood function of a graph, its distance density function,
+  and derived values. See our paper about HyperANF (this stuff was actually
+  introduced in 2.4.5, but we forgot to mention).
+
+- Fixed an occasional infinite loop in ErdosRenyiGraph.
+
+- New class for reading scattered arc lists (ids need to be contiguous).
+
+- BVGraph.store() now sets up the node iterator before starting the
+  progress logger. This should provide more sensible estimates of time to
+  completion in case of offline methods.
+
+- BVGraph node iterators have now a finalize() method that will close the
+  underlying bit stream (and thus possibly the underlying file handle)
+  when the iterator is no longer used.
+
+- HyperApproximateNeighbourhoodFunction would not work with an offline
+  graph even with a single thread (thanks to Lars Backstrom for reporting
+  this bug).
+
+- HyperApproximateNeighbourhoodFunction supports now 16 (-l4) or 32 (-l5)
+  registers per counter.
+
+- Fixed old-standing synchronization bug in
+  HyperApproximateNeighbourhoodFunction.
+
+- New static method NeighbourhoodFunction.harmonicDiameter().
+
+2.4.5
+
+- WebGraph is now distributed under the GNU General Public License 3.
+
+- WARNING: A small modification to the coding makes it possible to
+  compress graphs with more than 1B nodes (always up to 2B nodes). This,
+  however, means that such graphs will not be readable by previous
+  versions, which will crash. We felt this was not such a big issue, as
+  such graphs were not previously compressible at all, so the version
+  number has not been bumped.
+
+- StronglyConnectedComponents no longer uses a separate thread to
+  set the stack size. The process was not guaranteed (by contract)
+  to set the stack size at all. The computation now runs in the main
+  thread, and we suggest using suitable JVM options to set a large
+  stack size.
+
+- BVGraph now computes a wealth of statistical data related to the
+  behaviour of the compression algorithm.
+
+- A number of classes deal with estimating efficiently the neighbourhood
+  function of a graph, the effective diameter, and the spid
+  (shortest-paths index of dispersion).
+
+- A caching mechanism has been put in place to make offsets loading
+  orderds of magnitudes faster. You can generate a cached, serialised
+  EliasFanoMonotoneLongBigList with the option -L of BVGraph, and then it
+  will be loaded instead of scanning the offsets file.
+
+- Fixed bug in the definition of in/out trees in ArrayListMutableGraph.
+
+- Now Stats computes loops.
+
+- BitStreamArcLabelledGraph was not supporting offset steps any longer,
+  but constructors and static methods still made it possible to pass
+  an offset step. This has been fixed.
+
+- Some residual documentation about offset steps has been removed.
+
+- A new cutoff option makes it possible to eliminate from a graph
+  generated by a map operation on the command line (see Transform) all
+  nodes whose index is too large. This is useful in conjunction with maps
+  that quotient a graph (e.g., to get just large strongly connected
+  components).
+
+2.4.4
+
+- The empty Formatter constructor was causing problems on localised systems.
+  Now we use Locale.ROOT.
+
+- offsetStep > 1 no longer exist. It is not necessary with the new Elias-Fano
+  offset list.
+
+- Speed improvements in random access to a BVGraph.
+
+- Fixed semantics of ImmutableGraph.successorArray(): implementations are
+  now forced to return a new array at each call. All implementations in
+  WebGraph are now compliant.
+
+- Now nodeIterator(int) in ImmutableSequentialGraph is implemented so that
+  it calls nodeIterator() and then skips to the desired node.
+
+- Fixed bad bug in UnionImmutableGraph: the node for which the cache was
+  active was not set by successors().
+
+- We now output some basic, exponentially binned stats for the distribution
+  of successor gaps and residual gaps. From these data we also compute an
+  approximation of the average gap for successors and for residuals.
+
+- We now record how much space is used by every component of the compression
+  algorithm.
+
+- Following some research, the default minimum interval length in BVGraph
+  is now 4.
+
+2.4.3
+
+- Fixed ArrayListMutableGraph.addNodes() (thanks to Erik Lumer for
+  finding and fixing this bug).
+
+- New options to shift the output of ASCII graphs.
+
+- RemappedImmutableGraph.successorArray(x) was providing the same array on every
+  call, thus making the inherited successors(x) method unusable to scan in
+  parallel different lists. Fixed (now it returns a copy of the array, instead).
+
+- New random transformation that permutes randomly a graph.
+
+2.4.2
+
+- Transform was not derelativising underlying-graph filenames.
+
+- New classes to support flexible filtering of arc-labelled
+  graphs. See the new action "larcfilter" of Transform and
+  the interface LabelledArcFilter.
+
+- StronglyConnectedComponents now uses a filter for labelled arcs, in case
+  you want to compute components of a subgraph.
+
+- Fixed old bug in StronglyConnectedComponents: the renumber
+  option was not working.
+
+- New Transform.compose() transformation that composes graphs
+  (i.e., it computes the graph represented by the product
+  of the Boolean matrices representing two graphs). You can
+  even compose labelled graphs by providing a semiring to
+  compose labels.
+
+- Now label files can be longer than 2GiB.
+
+2.4.1
+
+- Fixed stupid null-pointer bug in BitStreamImmutableArcLabelledGraph.
+
+2.4
+
+- WARNING: There are more general relabelling strategies, but older
+  code must be slightly refactored.
+
+- Now BitStreamArcLabelledImmutableGraph supports contextual labels.
+  They accept an additional directory as context, to resolve relative
+  names.
+
+2.3
+
+- Fixed bug in BitStreamArcLabelledImmutableGraph: labels longer
+  than 2Gi would have caused overflows.
+
+- The new pointer loading system has been extended to arc-labelled graphs,
+  too.
+
+2.2
+
+- New pointer loading system based on succinct representations. Now on
+  typical web graphs pointers occupy 8-9 [sic] bits per element, thus
+  almost halving the memory footprint.. The performance drop is about
+  10-15% (measured in ns/link on an Opteron) for reference chains of length
+  3 (and it decreases for shorter chains).
+
+- New greyPerm transform to just get the permutation.
+
+- ArcLabelledImmutableGraph now strengthens the implementation of
+  nodeIterator() based on the random-access methods.
+
+- Fixed lack of checks in integer key labels.
+
+- New defensive check in BVGraph against badly implemented ImmutableGraphs.
+
+2.1
+
+- WARNING: Refactored to be based on dsiutils and Sux4J. This will cause
+  some incompatibilities, in particular with loggers.
+
+- Moved DocumentSequenceImmutableGraph to LAW, to avoid dependency
+  on MG4J and vice versa.
+
+2.0
+
+- WARNING: WebGraph 2+ is not fully compatible with previous versions, and
+  requires some minor refactoring: due to the new lazy architecture, the
+  semantics of successors() has radically changed; in particular, a
+  LazyIntIterator is returned instead of an IntIterator. Please refer to
+  the ImmutableGraph documentation.
+
+- New customised class parser that will prepend it.unimi.dsi.webgraph.
+  and it.unimi.dsi.webgraph.labelling. to classes specified on 
+  the command line (at last!).
+
+- New ArcListASCIIGraph that specifies one arc per line and guesses
+  the number of nodes. A special implementation can be used when
+  nodes are numbered from one.
+
+- New --spec switch that makes it possible to specify graphs as
+  class names with arguments. Most useful to turn MG4J's document
+  sequences into graphs using a VirtualDocumentResolver.
+
+- Slightly relaxed contract for numNodes() (to make ArcListASCIIGraph
+  conforming).
+
+- New classes for union and transposition of labelled graphs. Transform
+  has been adapted to use automatically BitStreamArcLabelledImmutableGraph
+  to save arc-labelled graph, but the class is settable.
+
+- Arc-labelled graphs must expose a prototype of their labels.
+
+- New store() suggested methods for arc-labelled graphs.
+
+- New Stats class for computing basic statistical data.
+
+- Very, very, old bug in BVGraph has been fixed. nodeIterator(from)
+  with from>1 was not working properly. Thanks to Francesco Zumpano
+  and Pierluigi Origlia for finding this bug.
+
+- New example class to interface your data with arc-labelled graph classes.
+
+- Integer labels have a public value fields.
+
+- Load methods of BVGraph now look for an offsetstep property to set
+  the offset step externally.
+
+- New extension for label offsets (.labeloffsets) and new property
+  key for the underlying graph (underlyinggraph). Watch out!
+
+- New relabelling wrapper to change the labels of a graph.
+
+- New class implementing a variant of the Tarjan algorithm.
+
+- All standard extensions and property keys are now defined by string constants.
+
+- New algo package. We start with strongly connected components.
+
+1.7
+
+- Brand new ArcLabelledGraph 
+
+- Deprecated classes and methods have been removed.
+
+- Revamped OutdegreeStats class.
+
+- New loadOnce() method for loading graphs on-the-fly. Very useful for
+  generating an ASCIIGraph to standard output can compressing it without
+  actually storing it.
+
+- New randomAccess() method that tells you whether a 
+  graph supports random access.
+
+- A number of new packages containing unit tests.
+
+- Fixed bug in ImmutableSubgraph: the property subgraphnodes
+  was not actually read.
+
+- Implemented a workaround for bug #6478546 (you can't do read() on large
+  arrays when you have a lot of heap--bizarre, isn't it?).
+
+1.6
+
+- Most load() static methods now override the return type and
+  declare the actual returned type, usually more specific (e.g.,
+  BVGraph.load() returns a BVGraph).
+
+- Graphs can now be transposed with an offline method. It is
+  slower than the in-memory method, but it can transpose arbitrarily
+  large graphs.
+
+1.5
+
+- IMPORTANT: WebGraph requires now Java 5.
+
+- New ArrayListMutableGraph class that makes it easy to create
+  dynamically graphs, and then exposes them as an ImmutableGraph.
+
+- New documentation and example on how to import your data in
+  WebGraph.
+
+- All code moved from ProgressMeter to ProgressLogger. All old
+  methods are deprecated.
+
+- Command line parsing entirely handled by JSAP.
+
+- The default maximum reference count for BVGraph is now 3.
+
+- ASCIIGraph has been revamped to be usable to convert offline
+  large graphs.
+
+- The basename property was never used, and it is no longer saved.
+
+1.4.1
+
+- New method writeOffsets() and corresponding -O option in BVGraph
+  which writes the offsets of a graph computing them from the graph
+  representation (.graph file). This allows to distribute directly
+  just the .graph and the .properties files.
+
+- Incompatible ImmutableSubgraph, with more (hopefully) sensible 
+  method names.
+
+1.4
+
+- Now various classes use the ImmutableGraph reflection methods.
+
+- New ImmutableSubgraph class for storing and manipulating subgraphs
+  holding just a reference to the node subset.
+
+- New Transform static container with common constructions, and
+  computation of Gray code ordering.
+
+- Fixed lack of error message when accessing randomly successor
+  in a sequentially loaded BVGraph.
+
+1.2.4
+
+- The graph class name is now obtained using getName(), and
+  kluges have been placed that make also old graphs work.
+
+- New explicit convention for storing the graph class name in a property file.
+
+- New static methods in ImmutableGraph that load a graph using reflection
+  and the convention above.
+
+- Fixed lack of check or null pm.
+
+- Fixed lack of loadOffline() method in BVGraph (causing infinite recursion).
+
+1.2.2
+
+- Aligned usage of iterators with fastutil 3.1.
+
+1.2.1
+
+- Fixed a stupid bug (in one case we forgot to reallocate a new
+  FastMultiByteArrayInputStream).
+
+- Fixed another stupid bug (using a standard, memory-stored
+  graph would have not worked!).
+
+1.2
+
+- BVGraph now supports graphs larger than 2 GiB (in fact, up to 256 PiB)
+  using (transparently) FastMultiByteArrayInputStream.
+
+1.1
+
+- The return type of the load method has been changed to ImmutableGraph,
+  so to make it possible to override it in subclasses. This might require some
+  additional type casting in existing code.
+
+1.0r2
+
+- Updated to new fastutil class set.
+
+1.0
+
+- First public release.
