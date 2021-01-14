@@ -1,0 +1,21 @@
+- Better toString() for graphs
+
+- There are ImmutableGraph.loadOnce() around which just throw exceptions.
+
+- Make also labelled batches compressed
+
+- Memory mapping for labels.
+
+- [ArcList]ASCIIGraph should accept lines starting with # as comments
+
+- Choose WELL the constructors of HyperBall.
+
+- Try to avoid first register clearing
+
+- Less object generation for HyperBall
+
+- Fix transform's main to support offline automagically
+
+- Stats should be able to use .wccsizes
+
+- Make Transform decide the load method depending on the operations involved.

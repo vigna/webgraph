@@ -1,0 +1,45 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>it.unimi.dsi</groupId>
+  <artifactId>${ivy.pom.artifactId}</artifactId>
+  <packaging>jar</packaging>
+  <name>WebGraph</name>
+  <version>${ivy.pom.version}</version>
+  <description>WebGraph is a framework to study the web graph. It provides simple ways to manage very large graph, exploiting modern compression techniques.</description>
+  <url>http://webgraph.dsi.unimi.it/</url>
+  <licenses>
+    <license>
+      <name>GNU Lesser General Public License Version 2.1+</name>
+      <url>https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html</url>
+      <distribution>repo</distribution>
+    </license>
+    <license>
+      <name>Apache License v2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+      <distribution>source</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <connection>scm:git://github.com/vigna/WebGraph.git</connection>
+    <url>https://github.com/vigna/WebGraph</url>
+  </scm>
+  <developers>
+
+    <developer>
+      <id>boldi</id>
+      <name>Paolo Boldi</name>
+      <email>paolo.boldi@unimi.it</email>
+    </developer>
+
+    <developer>
+      <id>vigna</id>
+      <name>Sebastiano Vigna</name>
+      <email>sebastiano.vigna@unimi.it</email>
+    </developer>
+
+  </developers>
+  <properties>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+  </properties>
+</project>

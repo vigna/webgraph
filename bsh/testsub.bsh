@@ -1,0 +1,17 @@
+import it.unimi.dsi.webgraph.*;
+import it.unimi.dsi.mg4j.util.*;
+pm = new ProgressMeter( 10000 );
+g = ImmutableGraph.load( bsh.args[0], pm );
+i = g.nodeIterator();
+pm.start();
+System.err.print("Checking...");
+while(i.hasNext()) {
+	n = i.nextInt();
+	j = i.successors();
+	k = g.successors(n);
+	while(j.hasNext() && k.hasNext()) if (j.nextInt() != k.nextInt()) print("Broken at " + n); 
+	if (j.hasNext() || k.hasNext()) printf("Different length at " + n);
+	pm.update();
+}
+pm.stop( " done." );
+System.err.println( pm );

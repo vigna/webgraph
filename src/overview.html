@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>WebGraph</title>
+  </head>
+
+  <body>
+    <P>WebGraph is a framework to study the web graph. It provides simple ways to manage
+	very large graphs, exploiting modern compression techniques. More precisely,
+	it is currently made of:
+	<OL>
+
+	<LI>A set of simple codes, called <em>&zeta; codes</em>, which are
+	particularly suitable for storing web graphs (or, in general, integers
+	with a power-law distribution in a certain exponent range).
+
+	<LI>Algorithms for compressing web graphs that exploit gap compression and
+	differential compression (<i>&agrave; la</i> <A
+	HREF="http://www.hpl.hp.com/techreports/Compaq-DEC/SRC-RR-175.html">LINK</A>),
+	intervalisation and &zeta; codes to provide a high compression ratio (see <A HREF="http://law.di.unimi.it/datasets.php">our datasets</A>). The
+	algorithms are controlled by several parameters, which provide
+	different tradeoffs between access speed and compression ratio.
+
+	<LI>Algorithms for accessing a compressed graph without actually decompressing it,
+	using lazy techniques that delay the decompression until it is actually necessary.
+
+	<LI>Algorithms for analysing very large graphs, such as
+	{@link it.unimi.dsi.webgraph.algo.HyperBall}, which
+	has been used to show that Facebook has just <a href="http://vigna.di.unimi.it/papers.php#BBRFDS">four degrees of separation</a>.	
+
+	<LI>This package, providing a complete, documented implementation of
+	the algorithms above in Java. It is free software
+	distributed under either the  <A HREF="https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html">GNU Lesser General Public License 2.1+</A> or the <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache Software License 2.0</a>.
+
+	<LI>Data sets for very large graph (e.g., a billion of links). These are either 
+	gathered from public sources (such as <A HREF="http://www-diglib.stanford.edu/~testbed/doc2/WebBase/">WebBase</A>),
+	or gathered by <A HREF="http://law.di.unimi.it/software.php#ubicrawler">UbiCrawler</A>.
+
+	</OL>
+	
+	<P>In the end, with WebGraph you can access and analyse very large web graphs. Using WebGraph is as easy as installing a few
+	jar files and downloading a data set.
+
+	<p>You are welcome to use and improve WebGraph! If you find our software useful for your research, please quote 
+	our paper &ldquo;<a href="http://vigna.di.unimi.it/papers.php#BoVWFI">The WebGraph Framework I: Compression Techniques</a>&rdquo;, by Paolo Boldi and
+   Sebastiano Vigna, in <i>Proc&#46; of the Thirteenth World&ndash;Wide Web
+   Conference</i>, pages 595&minus;601, 2004, ACM Press.
+  
+   <h1>Looking around</h1>
+
+    	<P>For in-depth information on the Webgraph framework, you should have
+    	a look at its <A HREF="http://webgraph.di.unimi.it/">home page</A>,
+      where you can find some papers about the compression techniques it uses.
+      Datasets are available at the <a href="http://law.di.unimi.it/">LAW web site</a>.
+
+      	<P>The classes of interest for the casual Webgraph user are {@link
+      	it.unimi.dsi.webgraph.ImmutableGraph}, which specifies the access
+      	methods for an immutable graph, {@link it.unimi.dsi.webgraph.BVGraph},
+      	which allow to retrieve or recompress a graph stored in the format
+      	described in <a
+      	href="http://vigna.dsi.unimi.it/papers.php#BoVWFI"><i>The WebGraph
+      	Framework I: Compression Techniques</i></a>, and {@link it.unimi.dsi.webgraph.Transform}, which
+      	provides several ways to transform an {@link it.unimi.dsi.webgraph.ImmutableGraph}.
+
+			<p>If you plan on building your graphs dynamically, the class
+			{@link it.unimi.dsi.webgraph.ArrayListMutableGraph} makes it possible
+			to create incrementally a graph and then extract an {@linkplain
+			it.unimi.dsi.webgraph.ArrayListMutableGraph#immutableView() immutable view}.
+
+        <P>The package {@link it.unimi.dsi.webgraph.examples} contains useful
+        examples that show how to access sequentially and randomly an immutable
+        graph.
+
+	<h1>Exporting to other formats</h1>
+
+	<p>{@link it.unimi.dsi.webgraph.ASCIIGraph} and {@link it.unimi.dsi.webgraph.ArcListASCIIGraph}
+	 have main methods that can be used to save an immutable graph, as long as you can load it, in ASCII form. 
+	With data in {@link it.unimi.dsi.webgraph.BVGraph} or {@link it.unimi.dsi.webgraph.EFGraph} format this is as simple as
+<pre>
+java -server it.unimi.dsi.webgraph.ASCIIGraph <var>sourcebasename</var> <var>dest</var>
+</pre>
+	or 
+<pre>
+java -server it.unimi.dsi.webgraph.ArcListASCIIGraph <var>sourcebasename</var> <var>dest</var>
+</pre>
+
+	<p>Please consult the documentation and the command-line help of these two classes to get more information.
+
+	<h1>Importing your data</h1>
+
+	<p>If you want to import your own data into WebGraph, you must write
+	an implementation of {@link it.unimi.dsi.webgraph.ImmutableGraph} that
+	exposes your data. A simple example is given in {@link it.unimi.dsi.webgraph.examples.IntegerListImmutableGraph},
+	a stub class exposing a simple, noncompressed binary format as an {@link it.unimi.dsi.webgraph.ImmutableGraph}.
+	Once your data is exposed in that way, you can get a compressed version
+	using the <code>store()</code> method of your class of interest. Often, there
+	is a main method (see, e.g., {@link it.unimi.dsi.webgraph.BVGraph}) that
+	will load your class and invoke <code>store()</code> for you.
+
+	<p>For example, you can use an immutable graph inside the <a href="http://jung.sourceforge.net/">Jung</a> framework using our
+	{@link it.unimi.dsi.webgraph.jung.JungAdapter}.
+
+
+	<p>As an alternative, the class {@link it.unimi.dsi.webgraph.ASCIIGraph}
+	can be used to read graphs specified in a very simple ASCII format. The class
+	implements {@link it.unimi.dsi.webgraph.ASCIIGraph#loadOnce(java.io.InputStream)} so
+	that the file can be just piped into a class offering a main method that supports
+	<code>loadOnce()</code> (e.g., {@link it.unimi.dsi.webgraph.BVGraph}).
+	You can also generate a graph in ASCII format and read it using
+	{@link it.unimi.dsi.webgraph.ASCIIGraph#loadOffline(CharSequence)}&mdash;the
+	graph will not be loaded into main memory.
+	
+	<p>{@link it.unimi.dsi.webgraph.ASCIIGraph} requires listing the successors of each
+	node on a separate line. If your graph is specified arc by arc (one arc per line) you
+	can use {@link it.unimi.dsi.webgraph.ArcListASCIIGraph} instead. 
+	{@link it.unimi.dsi.webgraph.ShiftedByOneArcListASCIIGraph} can be used if your input
+	data numbers (rather insensibly) nodes starting from one.
+	
+	<p>Another possibility is to specify your graph <em>{@linkplain it.unimi.dsi.webgraph.IncrementalImmutableSequentialGraph incrementally}</em>. 
+	which just involves enumerating arrays of successors for each node.
+	
+	<h1>Importing your <em>labelled</em> data</h1>
+	
+	<p>Arc-labelled graphs are represented using implementations of {@link it.unimi.dsi.webgraph.labelling.ArcLabelledImmutableGraph}.
+	Most arc-labelled graphs are based on an underlying {@link it.unimi.dsi.webgraph.ImmutableGraph}, and
+	the {@link it.unimi.dsi.webgraph.labelling.ArcLabelledImmutableGraph} implementation just provides
+	label handling. The example {@link it.unimi.dsi.webgraph.examples.IntegerTriplesArcLabelledImmutableGraph}
+	shows how to expose your data as an instance of {@link it.unimi.dsi.webgraph.labelling.ArcLabelledImmutableGraph},
+	so you can save your data using your preferred combination of implementations.	
+
+  </body>
+</html>

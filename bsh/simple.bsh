@@ -1,0 +1,5 @@
+// Simple BeanShell script to compute efficiently the simple version of a graph given the graph and its transpose
+// Args: source transpose dest
+graph = it.unimi.dsi.webgraph.ImmutableGraph.loadMapped(bsh.args[0]);
+transpose = it.unimi.dsi.webgraph.ImmutableGraph.loadMapped(bsh.args[1]);
+it.unimi.dsi.webgraph.BVGraph.store(it.unimi.dsi.webgraph.Transform.filterArcs(it.unimi.dsi.webgraph.Transform.union(graph, transpose), it.unimi.dsi.webgraph.Transform.NO_LOOPS), bsh.args[2], new it.unimi.dsi.logging.ProgressLogger());

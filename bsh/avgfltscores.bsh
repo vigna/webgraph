@@ -1,0 +1,13 @@
+n = bsh.args.length - 1;
+if ( n < 1 ) throw new IllegalArgumentException( "You must specify at least one float score file and one double output file" );
+s = it.unimi.dsi.fastutil.io.BinIO.loadFloats( bsh.args[ 0 ] );
+result = new double[ s.length ];
+for( i = s.length; i-- != 0; ) result[ i ] = s[ i ];
+for( k = n ; k-- != 1; ) {
+	s = it.unimi.dsi.fastutil.io.BinIO.loadFloats( bsh.args[ k ] );
+	if ( s.length != result.length ) throw new IllegalArgumentException( "Scores have different lengths" );
+	for( i = s.length; i-- != 0; ) result[ i ] += s[ i ];
+}
+norm = 1. / n;
+for( i = s.length; i-- != 0; ) result[ i ] *= norm;
+it.unimi.dsi.fastutil.io.BinIO.storeDoubles( result, bsh.args[ n ] );

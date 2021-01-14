@@ -1,0 +1,9 @@
+import it.unimi.dsi.webgraph.*;
+
+if ( bsh.args.length != 2 ) throw new IllegalArgumentException( "You must specify a basename and a rank output file" );
+
+g = ImmutableGraph.loadOffline( bsh.args[ 0 ] );
+i = g.outdegrees();
+d = new double[ g.numNodes() ];
+for( c = 0; i.hasNext(); c++ ) d[ c ] = i.nextInt();
+it.unimi.dsi.fastutil.io.BinIO.storeDoubles( d, bsh.args[ 1 ] );

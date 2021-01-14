@@ -1,0 +1,284 @@
+<project name="webgraph" default="jar" basedir="." xmlns:ivy="antlib:org.apache.ivy.ant" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
+	
+	<property name="build.sysclasspath" value="ignore"/>
+	<property name="jars.dir" value="${basedir}/jars"/>
+	<property file="build.properties"/>
+
+	<property environment="env"/>
+
+	<property name="ivy.pom.version" value="${version}" />
+	<condition property="ivy.settings.file" value="${env.LOCAL_IVY_SETTINGS}"><isset property="env.LOCAL_IVY_SETTINGS"/></condition>
+	
+	<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant"/>
+
+	<target name="ivy-setupjars" description="Downloads dependencies with ivy and generate report">
+		<ivy:retrieve symlink="true" sync="true" pattern="${jars.dir}/[conf]/[artifact](-[classifier]).[ext]"/>
+		<ivy:report todir="${dist}/ivy-report"/>
+	</target>
+
+	<target name="ivy-clean" description="Cleans ivy cache, jars dir and ivy installation">
+		<delete dir="${jars.dir}"/>
+	</target>
+
+	<target name="ivy-pom" description="Creates POM">
+		<ivy:resolve/>
+		<ivy:deliver deliverpattern="${dist}/ivy.xml" pubrevision="${version}" status="release"/>
+		<ivy:makepom ivyfile="${dist}/ivy.xml" templatefile="pom-model.xml" pomfile="pom.xml">
+			<dependency group="ch.qos.logback" artifact="logback-classic.jar" optional="true"/>
+		</ivy:makepom>
+	</target>
+	
+	<path id="compile.classpath">
+		<fileset dir="${jars.dir}/compile"/>
+	</path>	
+	<path id="test.classpath">
+		<fileset dir="${jars.dir}/test"/>
+	</path>	
+	<path id="project.classpath">
+		<fileset dir="${jars.dir}/runtime"/>
+	</path>	
+
+	<!-- ************************************** WARNING: MAVEN SH*T ************************************** -->
+
+	<!-- define Maven coordinates -->
+	<property name="groupId" value="it.unimi.dsi" />
+	<property name="artifactId" value="webgraph" />
+	<property name="version" value="${version}" />
+
+        <!-- define artifacts' name, which follows the convention of Maven -->
+	<property name="maven-jar" value="${dist}/lib/${artifactId}-${version}.jar" />
+	<property name="maven-javadoc-jar" value="${dist}/lib/${artifactId}-${version}-javadoc.jar" />
+	<property name="maven-sources-jar" value="${dist}/lib/${artifactId}-${version}-sources.jar" />
+
+        <!-- defined maven snapshots and staging repository id and url -->
+	<property name="maven-snapshots-repository-id" value="sonatype-nexus-snapshots" />
+	<property name="maven-snapshots-repository-url" value="https://oss.sonatype.org/content/repositories/snapshots/" />
+	<property name="maven-staging-repository-id" value="sonatype-nexus-staging" />
+	<property name="maven-staging-repository-url" value="https://oss.sonatype.org/service/local/staging/deploy/maven2/" />
+
+	<!-- OSGi manifest generation -->
+	<target name="resolve" description="run Ivy to fetch jars">
+		<ivy:retrieve />
+	</target>
+
+	<target name="osgi" depends="resolve,compile">
+		<taskdef resource="aQute/bnd/ant/taskdef.properties" classpath="bnd/bnd-2.4.0.jar"/>
+		<bnd
+			classpath="${build}"
+			eclipse="false"
+			failok="false"
+			exceptions="true"
+			output="${maven-jar}"
+			files="webgraph.bnd"/>
+	</target>
+	<!-- end OSGi manifest generation -->
+
+	<target name="dist" depends="osgi,javadoc" description="generate the distribution">
+		<!-- build the javadoc artifact (from symbolic link created in init) -->
+		<jar jarfile="${maven-javadoc-jar}">
+			<fileset dir="${dist}/javadoc" />
+		</jar>
+
+		<!-- build the sources artifact -->
+		<jar jarfile="${maven-sources-jar}">
+			<fileset dir="." includes="CHANGES,COPYING.LESSER,LICENSE-2.0.txt,build.xml,webgraph.bnd,build.properties,ivy.xml,${src}/**/*.java,${src}/**/*.html,${test}/**/*.java,${slow}/**/*.java"/>
+		</jar>
+	</target>
+
+	<target name="deploy" depends="dist,ivy-pom" description="deploy snapshot version to Maven snapshot repository">
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-deploy-plugin:2.6:deploy-file" />
+			<arg value="-Durl=${maven-snapshots-repository-url}" />
+			<arg value="-DrepositoryId=${maven-snapshots-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-jar}" />
+		</artifact:mvn>
+	</target>
+
+	<target name="stage" depends="dist,ivy-pom" description="deploy release version to Maven staging repository">
+		<!-- sign and deploy the main artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${maven-staging-repository-url}" />
+			<arg value="-DrepositoryId=${maven-staging-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-jar}" />
+                        <arg value="-Pgpg" />
+		</artifact:mvn>
+
+		<!-- sign and deploy the sources artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${maven-staging-repository-url}" />
+			<arg value="-DrepositoryId=${maven-staging-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-sources-jar}" />
+			<arg value="-Dclassifier=sources" />
+                        <arg value="-Pgpg" />
+		</artifact:mvn>
+
+		<!-- sign and deploy the javadoc artifact -->
+		<artifact:mvn>
+			<arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+			<arg value="-Durl=${maven-staging-repository-url}" />
+			<arg value="-DrepositoryId=${maven-staging-repository-id}" />
+			<arg value="-DpomFile=pom.xml" />
+			<arg value="-Dfile=${maven-javadoc-jar}" />
+			<arg value="-Dclassifier=javadoc" />
+                        <arg value="-Pgpg" />
+		</artifact:mvn>
+	</target>
+
+	<!-- ************************************** END OF MAVEN SH*T ************************************** -->
+	
+	<property name="subdir"    value=""/>
+  
+	<!-- ************		SOURCE		********************* -->
+	<target name="init">
+		<available property="ivy.set.up" file="${jars.dir}"/>
+		<fail message="It appears that Ivy has not been set up properly. Please run &quot;ant ivy-setupjars&quot; and try again." unless="ivy.set.up"/>	
+		<mkdir dir="${dist}"/>
+		<mkdir dir="${docs}"/>
+		<mkdir dir="${build}"/>
+		<mkdir dir="${reports}"/>
+		<mkdir dir="${dist}/lib"/>
+		<symlink link="${dist}/javadoc" resource="../${docs}" overwrite="true"/>
+	</target>
+
+	<target name="compile" depends="init" description="Compile sources (without tests)">
+		<javac srcdir="${src}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" release="8" classpathref="compile.classpath">
+			<compilerarg value="-Xlint:all"/>
+			<compilerarg value="-Xlint:-path"/>
+		</javac>
+	</target>
+	
+	<target name="compile-tests" depends="init" description="Compile sources (with tests)">
+		<javac srcdir="${src}:${test}:${slow}" debug="on" optimize="on" destdir="${build}" encoding="UTF-8" release="8" classpathref="test.classpath">
+			<compilerarg value="-Xlint:all"/>
+			<compilerarg value="-Xlint:-path"/>
+		</javac>
+	</target>
+	
+	<target name="jar" depends="compile" description="Creates jar (without tests)">
+		<jar jarfile="webgraph-${version}.jar">
+			<fileset dir="${build}"/>
+			<manifest>
+				<attribute name="Automatic-Module-Name" value="it.unimi.dsi.webgraph"/>
+			</manifest>
+		</jar>	
+	</target>
+
+	<target name="jar-tests" depends="compile-tests" description="Creates jar (with tests)">
+		<jar jarfile="webgraph-${version}.jar">
+			<fileset dir="${build}"/>
+		</jar>	
+	</target>
+	
+	<!-- ************		JAVADOC		********************* -->
+	<target name="javadoc" description="Generates documentation">
+		<delete dir="${docs}"/>
+		<mkdir dir="${docs}"/>
+		<javadoc destdir="${docs}" 
+					encoding="UTF-8"
+					sourcepath="${src}" 
+					packagenames="it.unimi.dsi.webgraph.*" 
+					private="off"
+					overview="${src}/overview.html"
+					source="1.8" 
+					windowtitle="WebGraph ${version}"
+					additionalparam="-breakiterator -tag &quot;apiNote:a:API Notes:&quot; -tag &quot;implSpec:a:Implementation Specification:&quot; -tag &quot;implNote:a:Implementation Notes:\&quot;"
+					classpathref="compile.classpath">
+			<link href="${j2se.apiurl}"/>
+			<link href="${fastutil.apiurl}"/>
+			<link href="${dsiutils.apiurl}"/>
+			<link href="${sux4j.apiurl}"/>
+			<link href="${slf4j.apiurl}"/>
+			<link href="${jsap.apiurl}"/>
+			<link href="${junit.apiurl}"/>
+			<link href="${commons-math3.apiurl}"/>
+		</javadoc>
+	</target>
+	
+	<target name="junit" depends="compile-tests" description="Runs JUnit tests">
+
+		<junit printsummary="yes" fork="yes" haltonfailure="on"  haltonerror="on">
+			<classpath>
+				<path refid="test.classpath" />
+				<pathelement location="${build}"/>
+				<pathelement location="${src}"/>
+				<pathelement location="${test}"/>
+				<pathelement location="${slow}"/>
+			</classpath>
+
+			<assertions><enable/></assertions>
+
+			<jvmarg value="-Xss1G" />
+
+			<formatter type="xml"/>
+			<formatter type="plain"/>
+
+			<batchtest fork="yes" todir="${reports}">
+				<fileset dir="${build}">
+					<include name="it/unimi/dsi/webgraph/**/*Test.class"/>
+					<exclude name="it/unimi/dsi/webgraph/**/*SlowTest.class"/>
+					<exclude name="it/unimi/dsi/webgraph/test/*"/>
+				</fileset>
+			</batchtest>
+		</junit>
+
+		<junitreport todir="reports">
+			<fileset dir="reports">
+				<include name="TEST-*.xml"/>
+			</fileset>
+			<report todir="reports/html"/>
+		</junitreport>
+	</target>
+
+	<target name="junit-slow" depends="compile-tests" description="Runs JUnit tests">
+
+		<junit printsummary="yes" fork="yes" haltonfailure="off"  haltonerror="off">
+			<classpath>
+				<path refid="test.classpath" />
+				<pathelement location="${build}"/>
+				<pathelement location="${src}"/>
+				<pathelement location="${test}"/>
+				<pathelement location="${slow}"/>
+			</classpath>
+
+			<assertions><enable/></assertions>
+
+			<jvmarg value="-Xss1G" />
+			<jvmarg value="-Xmx120G" />
+
+			<formatter type="xml"/>
+			<formatter type="plain"/>
+
+			<batchtest fork="yes" todir="${reports}">
+				<fileset dir="${build}">
+					<include name="it/unimi/dsi/webgraph/**/*SlowTest.class"/>
+				</fileset>
+			</batchtest>
+		</junit>
+
+		<junitreport todir="reports">
+			<fileset dir="reports">
+				<include name="TEST-*.xml"/>
+			</fileset>
+			<report todir="reports/html"/>
+		</junitreport>
+
+	</target>
+
+
+	<!-- ************		CLEAN		********************* -->
+	<target name="clean">
+		<delete dir="${dist}"/>
+		<delete dir="${build}"/>
+		<delete dir="${reports}"/>
+		<delete dir="${docs}"/>
+		<delete>
+			<fileset dir="." includes="*.jar"/>
+		</delete>
+  </target>
+</project>
+
