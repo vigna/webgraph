@@ -20,8 +20,8 @@
     </license>
   </licenses>
   <scm>
-    <connection>scm:git://github.com/vigna/WebGraph.git</connection>
-    <url>https://github.com/vigna/WebGraph</url>
+    <connection>scm:git://github.com/vigna/webgraph.git</connection>
+    <url>https://github.com/vigna/webgraph</url>
   </scm>
   <developers>
 
