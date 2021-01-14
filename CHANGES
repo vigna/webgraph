@@ -3,6 +3,8 @@
 - Now ScatteredArcsASCIIGraph propagates BatchGraph's copiable iterators.
   As a consequence, compression will happen in parallel when possible.
 
+- Official support starts now at Java 9.
+
 3.6.9
 
 - Updated licensing info in the POM.
