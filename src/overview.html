@@ -5,7 +5,7 @@
   </head>
 
   <body>
-    <P>WebGraph is a framework to study the web graph. It provides simple ways to manage
+    <P>WebGraph is a framework for graph compression aimed at studying web graphs. It provides simple ways to manage
 	very large graphs, exploiting modern compression techniques. More precisely,
 	it is currently made of:
 	<OL>
@@ -56,10 +56,14 @@
       	<P>The classes of interest for the casual Webgraph user are {@link
       	it.unimi.dsi.webgraph.ImmutableGraph}, which specifies the access
       	methods for an immutable graph, {@link it.unimi.dsi.webgraph.BVGraph},
-      	which allow to retrieve or recompress a graph stored in the format
+      	which makes it possible to retrieve or recompress a graph stored in the format
       	described in <a
       	href="http://vigna.dsi.unimi.it/papers.php#BoVWFI"><i>The WebGraph
-      	Framework I: Compression Techniques</i></a>, and {@link it.unimi.dsi.webgraph.Transform}, which
+      	Framework I: Compression Techniques</i></a>, {@link it.unimi.dsi.webgraph.EFGraph},
+      	which provides a quasi-succinct representation using the Elias&ndash;Fano representation
+		of monotone sequences, 
+		and {@link it.unimi.dsi.webgraph.Transform}, 
+		which
       	provides several ways to transform an {@link it.unimi.dsi.webgraph.ImmutableGraph}.
 
 			<p>If you plan on building your graphs dynamically, the class
