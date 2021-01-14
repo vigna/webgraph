@@ -5,8 +5,8 @@ Welcome to WebGraph!
 compression aimed at studying web graphs. It provides simple ways to
 manage very large graphs, exploiting modern compression techniques.
 
-This version of WebGraph is limited to graph with at most 2^31 nodes. For
-larger graph, have a look at the [big
+This version of WebGraph is limited to graphs with at most 2^31 nodes. For
+larger graphs, have a look at the [big
 version](https://github.com/vigna/webgraph-big).
 
 seba (<mailto:sebastiano.vigna@unimi.it>)
