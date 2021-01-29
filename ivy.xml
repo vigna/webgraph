@@ -10,6 +10,7 @@
 	
 	<dependencies>
 
+		<dependency org="it.unimi.di" name="jsap" rev="20210129"/>
 		<dependency org="it.unimi.dsi" name="fastutil" rev="latest.release" />
 		<dependency org="it.unimi.dsi" name="dsiutils" rev="latest.release">
 			<!-- We are not using it.unimi.dsi.util.Properties. -->
@@ -22,7 +23,6 @@
 		<dependency org="net.sf.jung" name="jung-api" rev="latest.release"/>
 		<dependency org="net.sf.jung" name="jung-io" rev="latest.release"/>
 		<dependency org="org.apache.commons" name="commons-math3" rev="latest.release"/>
-		<dependency org="com.martiansoftware" name="jsap" rev="latest.release"/>
 		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.30" force="true"/>
 
 		<dependency org="ch.qos.logback" name="logback-core" rev="1.2.3" conf="runtime" force="true"/>
