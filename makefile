@@ -7,6 +7,7 @@ source:
 	ant clean
 	ln -s . webgraph-$(version)
 	$(TAR) chvf webgraph-$(version)-src.tar --owner=0 --group=0 \
+		webgraph-$(version)/README.md \
 		webgraph-$(version)/CHANGES \
 		webgraph-$(version)/COPYING.LESSER \
 		webgraph-$(version)/LICENSE-2.0.txt \
@@ -33,6 +34,7 @@ binary:
 	$(TAR) zxvf webgraph-$(version)-src.tar.gz
 	(cd webgraph-$(version) && unset CLASSPATH && unset LOCAL_IVY_SETTINGS && ant ivy-clean ivy-setupjars && ant junit && ant clean && ant jar javadoc)
 	$(TAR) zcvf webgraph-$(version)-bin.tar.gz --owner=0 --group=0 \
+		webgraph-$(version)/README.md \
 		webgraph-$(version)/CHANGES \
 		webgraph-$(version)/COPYING.LESSER \
 		webgraph-$(version)/LICENSE-2.0.txt \
