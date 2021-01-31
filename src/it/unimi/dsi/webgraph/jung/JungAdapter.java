@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012-2020 Sebastiano Vigna
+ * Copyright (C) 2012-2021 Sebastiano Vigna
  *
  * This program and the accompanying materials are made available under the
  * terms of the GNU Lesser General Public License v2.1 or later,
@@ -314,7 +314,7 @@ public class JungAdapter implements DirectedGraph<Integer, Long> {
 
 	@Override
 	public Collection<Integer> getVertices() {
-		return new AbstractObjectList<Integer>() {
+		return new AbstractObjectList<>() {
 			@Override
 			public Integer get(final int x) {
 				return Integer.valueOf(x);

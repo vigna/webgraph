@@ -1,7 +1,7 @@
 package it.unimi.dsi.webgraph.scratch;
 
 /*
- * Copyright (C) 2012-2020 Paolo Boldi and Sebastiano Vigna
+ * Copyright (C) 2012-2021 Paolo Boldi and Sebastiano Vigna
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under the terms of the GNU General Public License as published by the Free

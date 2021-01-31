@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2020 Sebastiano Vigna
+ * Copyright (C) 2011-2021 Sebastiano Vigna
  *
  * This program and the accompanying materials are made available under the
  * terms of the GNU Lesser General Public License v2.1 or later,
@@ -138,7 +138,7 @@ public class SampleDistanceCumulativeDistributionFunction {
 		int l = 0;
 		for(final int[] s: sample) l = Math.max(l, s.length);
 		final int length = l;
-		final AbstractObjectList<double[]> samples = new AbstractObjectList<double[]>() {
+		final AbstractObjectList<double[]> samples = new AbstractObjectList<>() {
 			@Override
 			public double[] get(final int index) {
 				final double[] result = new double[length];
