@@ -463,9 +463,9 @@ public class EFGraph extends ImmutableGraph {
 			/* Very approximately, half of the cache for lower, half for upper, and a small fraction
 			 * (8/quantum) for pointers. This will generate a much larger cache than expected if
 			 * quantum is very small. */
-			successors = new LongWordCache(Math.max(MIN_CACHE_SIZE, bufferSize >>> Math.max(3, log2Quantum - 3)), "pointers");
-			lowerBits = new LongWordCache(Math.max(MIN_CACHE_SIZE, bufferSize / 2), "lower");
-			upperBits = new LongWordCache(Math.max(MIN_CACHE_SIZE, bufferSize / 2), "upper");
+			successors = new LongWordCache(Math.max(MIN_CACHE_SIZE, bufferSize >>> Math.max(3, log2Quantum - 3)), ".pointers");
+			lowerBits = new LongWordCache(Math.max(MIN_CACHE_SIZE, bufferSize / 2), ".lower");
+			upperBits = new LongWordCache(Math.max(MIN_CACHE_SIZE, bufferSize / 2), ".upper");
 		}
 
 		public int lowerBits() {
