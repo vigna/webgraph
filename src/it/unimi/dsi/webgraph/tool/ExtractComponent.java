@@ -39,8 +39,8 @@ import com.martiansoftware.jsap.UnflaggedOption;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.io.FastBufferedOutputStream;
-import it.unimi.dsi.io.FileLinesCollection;
-import it.unimi.dsi.io.FileLinesCollection.FileLinesIterator;
+import it.unimi.dsi.io.FileLinesMutableStringIterable;
+import it.unimi.dsi.io.FileLinesMutableStringIterable.FileLinesIterator;
 import it.unimi.dsi.logging.ProgressLogger;
 
 /** A tool that extracts a component from a graph, possibly building an associated identifier list. */
@@ -73,7 +73,7 @@ public class ExtractComponent {
 		PrintWriter outIds = null;
 
 		if (jsapResult.userSpecified("inIds")) {
-			inIds = new FileLinesCollection(jsapResult.getString("inIds"), "UTF-8").iterator();
+			inIds = new FileLinesMutableStringIterable(jsapResult.getString("inIds"), "UTF-8").iterator();
 			outIds = new PrintWriter(new OutputStreamWriter(new FileOutputStream(jsapResult.getString("outIds")), Charsets.ISO_8859_1));
 		}
 
