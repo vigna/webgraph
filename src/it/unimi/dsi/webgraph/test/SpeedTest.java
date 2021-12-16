@@ -90,7 +90,7 @@ public class SpeedTest {
 		if (random) {
 			if (jsapResult.userSpecified("graphClass")) graph = (ImmutableGraph)graphClass.getMethod(LoadMethod.STANDARD.toMethod(), CharSequence.class, ProgressLogger.class).invoke(null, basename, pl);
 			else if (spec) graph = ObjectParser.fromSpec(basename, ImmutableGraph.class, GraphClassParser.PACKAGE);
-			else graph = ImmutableGraph.load(basename, pl);
+			else graph = mapped ? ImmutableGraph.loadMapped(basename, pl) : ImmutableGraph.load(basename, pl);
 
 			final int n = graph.numNodes();
 			samples = jsapResult.getLong("random");
