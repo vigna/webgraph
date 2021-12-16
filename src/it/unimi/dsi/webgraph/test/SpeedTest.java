@@ -88,7 +88,7 @@ public class SpeedTest {
 		final ImmutableGraph graph;
 
 		if (random) {
-			if (jsapResult.userSpecified("graphClass")) graph = (ImmutableGraph)graphClass.getMethod(LoadMethod.STANDARD.toMethod(), CharSequence.class, ProgressLogger.class).invoke(null, basename, pl);
+			if (jsapResult.userSpecified("graphClass")) graph = (ImmutableGraph)graphClass.getMethod(mapped ? LoadMethod.MAPPED.toMethod() : LoadMethod.STANDARD.toMethod(), CharSequence.class, ProgressLogger.class).invoke(null, basename, pl);
 			else if (spec) graph = ObjectParser.fromSpec(basename, ImmutableGraph.class, GraphClassParser.PACKAGE);
 			else graph = mapped ? ImmutableGraph.loadMapped(basename, pl) : ImmutableGraph.load(basename, pl);
 
@@ -121,7 +121,7 @@ public class SpeedTest {
 					averageTime / 1E9, samples, totLinks, (samples * 1E9) / averageTime, (totLinks * 1E9) / averageTime, averageTime / samples, averageTime / totLinks);
 		}
 		else if (adjacency) {
-			if (jsapResult.userSpecified("graphClass")) graph = (ImmutableGraph)graphClass.getMethod(LoadMethod.STANDARD.toMethod(), CharSequence.class, ProgressLogger.class).invoke(null, basename, pl);
+			if (jsapResult.userSpecified("graphClass")) graph = (ImmutableGraph)graphClass.getMethod(mapped ? LoadMethod.MAPPED.toMethod() : LoadMethod.STANDARD.toMethod(), CharSequence.class, ProgressLogger.class).invoke(null, basename, pl);
 			else if (spec) graph = ObjectParser.fromSpec(basename, ImmutableGraph.class, GraphClassParser.PACKAGE);
 			else graph = mapped ? ImmutableGraph.loadMapped(basename, pl) : ImmutableGraph.load(basename, pl);
 
@@ -156,7 +156,7 @@ public class SpeedTest {
 					averageTime / 1E9, samples, (samples * 1E9) / averageTime, averageTime / samples);
 		} else {
 			if (first) throw new IllegalArgumentException("Option --first requires --random.");
-			if (jsapResult.userSpecified("graphClass")) graph = (ImmutableGraph)graphClass.getMethod(LoadMethod.STANDARD.toMethod(), CharSequence.class, ProgressLogger.class).invoke(null, basename, pl);
+			if (jsapResult.userSpecified("graphClass")) graph = (ImmutableGraph)graphClass.getMethod(mapped ? LoadMethod.MAPPED.toMethod() : LoadMethod.STANDARD.toMethod(), CharSequence.class, ProgressLogger.class).invoke(null, basename, pl);
 			else if (spec)  graph = ObjectParser.fromSpec(basename, ImmutableGraph.class, GraphClassParser.PACKAGE);
 			else graph = mapped ? ImmutableGraph.loadMapped(basename, pl) : ImmutableGraph.load(basename, pl);
 
