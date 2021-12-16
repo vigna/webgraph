@@ -51,6 +51,7 @@ public class SpeedTest {
 		final SimpleJSAP jsap = new SimpleJSAP(SpeedTest.class.getName(), "Tests the access speed of an ImmutableGraph. By default, the graph is enumerated sequentially, but you can specify a number of nodes to be accessed randomly.\n\nThis class executes " + WARMUP + " warmup iterations, and then averages the timings of the following " + REPEAT + " iterations.",
 				new Parameter[] {
 						new FlaggedOption("graphClass", GraphClassParser.getParser(), JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'g', "graphClass", "Forces a Java class for the source graph."),
+						new Switch("mapped", 'm', "mapped", "Use memory-mapping."),
 						new Switch("spec", 's', "spec", "The basename is a specification of the form <ImmutableGraphImplementation>(arg,arg,...)."),
 						new FlaggedOption("seed", JSAP.LONG_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'S', "seed", "A seed for the pseudorandom number generator."),
 						new FlaggedOption("random", JSAP.LONGSIZE_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'r', "random", "Perform a random-access test on this number of nodes instead of enumerating sequentially the whole graph."),
@@ -64,6 +65,7 @@ public class SpeedTest {
 		if (jsap.messagePrinted()) System.exit(1);
 
 		final boolean random = jsapResult.userSpecified("random");
+		final boolean mapped = jsapResult.userSpecified("mapped");
 		final boolean adjacency = jsapResult.userSpecified("adjacency");
 		if (random && adjacency) throw new IllegalArgumentException("You cannot specify a random and an adjacency test at the same time");
 		final boolean spec = jsapResult.getBoolean("spec");
@@ -121,7 +123,7 @@ public class SpeedTest {
 		else if (adjacency) {
 			if (jsapResult.userSpecified("graphClass")) graph = (ImmutableGraph)graphClass.getMethod(LoadMethod.STANDARD.toMethod(), CharSequence.class, ProgressLogger.class).invoke(null, basename, pl);
 			else if (spec) graph = ObjectParser.fromSpec(basename, ImmutableGraph.class, GraphClassParser.PACKAGE);
-			else graph = ImmutableGraph.load(basename, pl);
+			else graph = mapped ? ImmutableGraph.loadMapped(basename, pl) : ImmutableGraph.load(basename, pl);
 
 			final int n = graph.numNodes();
 			samples = jsapResult.getLong("adjacency");
@@ -156,7 +158,7 @@ public class SpeedTest {
 			if (first) throw new IllegalArgumentException("Option --first requires --random.");
 			if (jsapResult.userSpecified("graphClass")) graph = (ImmutableGraph)graphClass.getMethod(LoadMethod.STANDARD.toMethod(), CharSequence.class, ProgressLogger.class).invoke(null, basename, pl);
 			else if (spec)  graph = ObjectParser.fromSpec(basename, ImmutableGraph.class, GraphClassParser.PACKAGE);
-			else graph = ImmutableGraph.load(basename, pl);
+			else graph = mapped ? ImmutableGraph.loadMapped(basename, pl) : ImmutableGraph.load(basename, pl);
 
 			samples = graph.numNodes();
 
