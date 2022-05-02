@@ -260,6 +260,14 @@ public class BitStreamArcLabelledImmutableGraph extends ArcLabelledImmutableGrap
 		return load(LoadMethod.OFFLINE, basename, pl);
 	}
 
+	public static BitStreamArcLabelledImmutableGraph loadMapped(final CharSequence basename) throws IOException {
+		return load(LoadMethod.MAPPED, basename, null);
+	}
+
+	public static BitStreamArcLabelledImmutableGraph loadMapped(final CharSequence basename, final ProgressLogger pl) throws IOException {
+		return load(LoadMethod.MAPPED, basename, pl);
+	}
+
 	public static BitStreamArcLabelledImmutableGraph load(final CharSequence basename) throws IOException {
 		return load(LoadMethod.STANDARD, basename, null);
 	}
