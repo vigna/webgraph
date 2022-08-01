@@ -735,11 +735,14 @@ public class Transform {
 		return symmetrizeOffline(g, batchSize, null, null);
 	}
 
-	/** Returns a symmetrized graph using an offline transposition.
+	/**
+	 * Returns a symmetrized graph using an offline transposition.
 	 *
 	 * @param g the source graph.
-	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by this method.
-	 * @param tempDir a temporary directory for the batches, or <code>null</code> for {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
+	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be
+	 *            allocated by this method.
+	 * @param tempDir a temporary directory for the batches, or <code>null</code> for
+	 *            {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
 	 * @return the symmetrized graph.
 	 * @see #symmetrizeOffline(ImmutableGraph, int, File, ProgressLogger)
 	 */
@@ -747,19 +750,83 @@ public class Transform {
 		return symmetrizeOffline(g, batchSize, tempDir, null);
 	}
 
-	/** Returns a symmetrized graph using an offline transposition.
+	/**
+	 * Returns a symmetrized graph using an offline transposition.
 	 *
-	 * <P>The symmetrized graph is the union of a graph and of its transpose. This method will
-	 * compute the transpose on the fly using {@link #transposeOffline(ArcLabelledImmutableGraph, int, File, ProgressLogger)}.
+	 * <P>
+	 * The symmetrized graph is the union of a graph and of its transpose. This method will compute the
+	 * transpose on the fly using {@link #transposeOffline(ImmutableGraph, int, File, ProgressLogger)}.
 	 *
 	 * @param g the source graph.
-	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by this method.
-	 * @param tempDir a temporary directory for the batches, or <code>null</code> for {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
+	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be
+	 *            allocated by this method.
+	 * @param tempDir a temporary directory for the batches, or <code>null</code> for
+	 *            {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
 	 * @param pl a progress logger, or <code>null</code>.
 	 * @return the symmetrized graph.
 	 */
 	public static ImmutableGraph symmetrizeOffline(final ImmutableGraph g, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
 		return union(g, transposeOffline(g, batchSize, tempDir, pl));
+	}
+
+	/**
+	 * Returns an arc-labelled symmetrized graph using an offline transposition.
+	 *
+	 * @param g the source graph.
+	 * @param labelMergeStrategy the strategy used to merge labels when the same arc is present in both
+	 *            {@code g} and its transpose; if <code>null</code>,
+	 *            {@link Labels#KEEP_FIRST_MERGE_STRATEGY} is used.
+	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be
+	 *            allocated by this method.
+	 * @return an immutable, sequentially accessible arc-labelled graph obtained by symmetrizing
+	 *         {@code g}.
+	 * @see #symmetrizeOffline(ArcLabelledImmutableGraph, LabelMergeStrategy, int, File)
+	 */
+	public static ImmutableGraph symmetrizeOffline(final ArcLabelledImmutableGraph g, final LabelMergeStrategy labelMergeStrategy, final int batchSize) throws IOException {
+		return symmetrizeOffline(g, labelMergeStrategy, batchSize, null, null);
+	}
+
+	/**
+	 * Returns an arc-labelled symmetrized graph using an offline transposition.
+	 *
+	 * @param g the source graph.
+	 * @param labelMergeStrategy the strategy used to merge labels when the same arc is present in both
+	 *            {@code g} and its transpose; if <code>null</code>,
+	 *            {@link Labels#KEEP_FIRST_MERGE_STRATEGY} is used.
+	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be
+	 *            allocated by this method.
+	 * @param tempDir a temporary directory for the batches, or <code>null</code> for
+	 *            {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
+	 * @return an immutable, sequentially accessible arc-labelled graph obtained by symmetrizing
+	 *         {@code g}.
+	 * @see #symmetrizeOffline(ArcLabelledImmutableGraph, LabelMergeStrategy, int, File, ProgressLogger)
+	 */
+	public static ImmutableGraph symmetrizeOffline(final ArcLabelledImmutableGraph g, final LabelMergeStrategy labelMergeStrategy, final int batchSize, final File tempDir) throws IOException {
+		return symmetrizeOffline(g, labelMergeStrategy, batchSize, tempDir, null);
+	}
+
+	/**
+	 * Returns an arc-labelled symmetrized graph using an offline transposition.
+	 *
+	 * <P>
+	 * The symmetrized graph is the union of a graph and of its transpose. This method will compute the
+	 * transpose on the fly using
+	 * {@link #transposeOffline(ArcLabelledImmutableGraph, int, File, ProgressLogger)}.
+	 *
+	 * @param g the source graph.
+	 * @param labelMergeStrategy the strategy used to merge labels when the same arc is present in both
+	 *            {@code g} and its transpose; if <code>null</code>,
+	 *            {@link Labels#KEEP_FIRST_MERGE_STRATEGY} is used.
+	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be
+	 *            allocated by this method.
+	 * @param tempDir a temporary directory for the batches, or <code>null</code> for
+	 *            {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
+	 * @param pl a progress logger, or <code>null</code>.
+	 * @return an immutable, sequentially accessible arc-labelled graph obtained by symmetrizing
+	 *         {@code g}.
+	 */
+	public static ImmutableGraph symmetrizeOffline(final ArcLabelledImmutableGraph g, final LabelMergeStrategy labelMergeStrategy, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
+		return union(g, transposeOffline(g, batchSize, tempDir, pl), labelMergeStrategy);
 	}
 
 	/**
