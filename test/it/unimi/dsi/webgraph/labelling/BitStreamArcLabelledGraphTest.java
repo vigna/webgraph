@@ -228,7 +228,10 @@ public class BitStreamArcLabelledGraphTest {
 
 					System.err.println("Testing offline...");
 					testLabels(BitStreamArcLabelledImmutableGraph.loadOffline(basenameLabel), width % MAX_WIDTH_FOR_FIXED);
+					System.err.println("Testing standard...");
 					testLabels(BitStreamArcLabelledImmutableGraph.load(basenameLabel), width % MAX_WIDTH_FOR_FIXED);
+					System.err.println("Testing mapped...");
+					testLabels(BitStreamArcLabelledImmutableGraph.loadMapped(basenameLabel), width % MAX_WIDTH_FOR_FIXED);
 					WebGraphTestCase.assertGraph(BitStreamArcLabelledImmutableGraph.loadOffline(basenameLabel));
 
 					new File(basenameLabel + ImmutableGraph.PROPERTIES_EXTENSION).delete();
@@ -285,10 +288,14 @@ public class BitStreamArcLabelledGraphTest {
 
 
 					System.err.println("Testing arc-labelled union offline...");
-					testLabels((ArcLabelledImmutableGraph) Transform.union(BitStreamArcLabelledImmutableGraph.loadOffline(basenameLabel0), BitStreamArcLabelledImmutableGraph.loadOffline(basenameLabel1)), width % MAX_WIDTH_FOR_FIXED);
-					testLabels((ArcLabelledImmutableGraph) Transform.union(BitStreamArcLabelledImmutableGraph.load(basenameLabel0), BitStreamArcLabelledImmutableGraph.load(basenameLabel1)), width % MAX_WIDTH_FOR_FIXED);
-
 					WebGraphTestCase.assertGraph(Transform.union(BitStreamArcLabelledImmutableGraph.loadOffline(basenameLabel0), BitStreamArcLabelledImmutableGraph.loadOffline(basenameLabel1)));
+					testLabels((ArcLabelledImmutableGraph) Transform.union(BitStreamArcLabelledImmutableGraph.loadOffline(basenameLabel0), BitStreamArcLabelledImmutableGraph.loadOffline(basenameLabel1)), width % MAX_WIDTH_FOR_FIXED);
+					System.err.println("Testing arc-labelled union standard...");
+					WebGraphTestCase.assertGraph(Transform.union(BitStreamArcLabelledImmutableGraph.load(basenameLabel0), BitStreamArcLabelledImmutableGraph.load(basenameLabel1)));
+					testLabels((ArcLabelledImmutableGraph) Transform.union(BitStreamArcLabelledImmutableGraph.load(basenameLabel0), BitStreamArcLabelledImmutableGraph.load(basenameLabel1)), width % MAX_WIDTH_FOR_FIXED);
+					System.err.println("Testing arc-labelled union mapped...");
+					WebGraphTestCase.assertGraph(Transform.union(BitStreamArcLabelledImmutableGraph.loadMapped(basenameLabel0), BitStreamArcLabelledImmutableGraph.loadMapped(basenameLabel1)));
+					testLabels((ArcLabelledImmutableGraph)Transform.union(BitStreamArcLabelledImmutableGraph.loadMapped(basenameLabel0), BitStreamArcLabelledImmutableGraph.loadMapped(basenameLabel1)), width % MAX_WIDTH_FOR_FIXED);
 
 					new File(basenameLabel0 + ImmutableGraph.PROPERTIES_EXTENSION).delete();
 					new File(basenameLabel0 + BitStreamArcLabelledImmutableGraph.LABELS_EXTENSION).delete();
