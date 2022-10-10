@@ -61,7 +61,7 @@ public class UnionArcLabelledImmutableGraph extends ArcLabelledImmutableGraph {
 	private int cachedNode = -1;
 
 	/** The outdegree of the cached node, if any. */
-	private int outdegree ;
+	private int outdegree;
 
 	/** The successors of the cached node, if any; note that the array might be larger. */
 	private int cache[];
@@ -315,22 +315,22 @@ public class UnionArcLabelledImmutableGraph extends ArcLabelledImmutableGraph {
 		final Label[] labelCache = this.labelCache;
 
 		return new LabelledArcIterator() {
-			int nextToBeReturned = -1;
+			int nextToBeReturned = 0;
 
 			@Override
 			public Label label() {
-				return labelCache[nextToBeReturned];
+				return labelCache[nextToBeReturned - 1];
 			}
 
 			@Override
 			public int nextInt() {
-				if (++nextToBeReturned >= outdegree) return -1;
-				return cache[nextToBeReturned];
+				if (nextToBeReturned == outdegree) return -1;
+				return cache[nextToBeReturned++];
 			}
 
 			@Override
 			public int skip(final int n) {
-				final int skipped = Math.min(n, outdegree - nextToBeReturned - 1);
+				final int skipped = Math.min(n, outdegree - nextToBeReturned);
 				if (skipped < 0) return 0;
 				nextToBeReturned += skipped;
 				return skipped;
