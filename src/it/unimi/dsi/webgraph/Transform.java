@@ -1620,29 +1620,42 @@ public class Transform {
 	}
 
 
-	/** Returns an arc-labelled immutable graph obtained by reversing all arcs in <code>g</code>, using an offline method.
+	/**
+	 * Returns an arc-labelled immutable graph obtained by reversing all arcs in <code>g</code>, using
+	 * an offline method.
 	 *
-	 * <p>This method should be used to transpose very large graph in case {@link #transpose(ImmutableGraph)}
-	 * requires too much memory. It creates a number of sorted batches on disk containing arcs
-	 * represented by a pair of integers in {@link java.io.DataInput} format ordered by target
-	 * and returns an {@link ImmutableGraph}
-	 * that can be accessed only using a {@link ImmutableGraph#nodeIterator() node iterator}. The node iterator
-	 * merges on the fly the batches, providing a transposed graph. The files are marked with
-	 * {@link File#deleteOnExit()}, so they should disappear when the JVM exits. An additional safety-net
-	 * finaliser tries to delete the batches, too. As far as labels are concerned, they are temporarily stored in
-	 * an in-memory bit stream, that is permuted when it is stored on the disk
+	 * <p>
+	 * This method should be used to transpose very large graph in case
+	 * {@link #transpose(ImmutableGraph)} requires too much memory. It creates a number of sorted
+	 * batches on disk containing arcs represented by a pair of integers in {@link java.io.DataInput}
+	 * format ordered by target and returns an {@link ImmutableGraph} that can be accessed only using a
+	 * {@link ImmutableGraph#nodeIterator() node iterator}. The node iterator merges on the fly the
+	 * batches, providing a transposed graph. The files are marked with {@link File#deleteOnExit()}, so
+	 * they should disappear when the JVM exits. An additional safety-net finaliser tries to delete the
+	 * batches, too.
 	 *
-	 * <p>Note that each {@link NodeIterator} returned by the transpose requires opening all batches at the same time.
-	 * The batches are closed when they are exhausted, so a complete scan of the graph closes them all. In any case,
-	 * another safety-net finaliser closes all files when the iterator is collected.
+	 * <p>
+	 * As far as labels are concerned, they are temporarily stored in an in-memory bit stream, that is
+	 * permuted when it is stored on disk. The bit stream is backed by a byte array, so the main limit
+	 * to the batch size is that the labels associated with a batch must fit into the largest allocable
+	 * byte array (usually, 2<sup>31</sup>&minus;1 bytes minus a few header bytes).
 	 *
-	 * <P>This method can process {@linkplain ArcLabelledImmutableGraph#loadOffline(CharSequence) offline graphs}. Note that
-	 * no method to transpose on-line arc-labelled graph is provided currently.
+	 * <p>
+	 * Note that each {@link NodeIterator} returned by the transpose requires opening all batches at the
+	 * same time. The batches are closed when they are exhausted, so a complete scan of the graph closes
+	 * them all. In any case, another safety-net finaliser closes all files when the iterator is
+	 * collected.
+	 *
+	 * <P>
+	 * This method can process {@linkplain ArcLabelledImmutableGraph#loadOffline(CharSequence) offline
+	 * graphs}. Note that no method to transpose on-line arc-labelled graph is provided currently.
 	 *
 	 * @param g an immutable graph.
-	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by this method,
-	 * plus an additional {@link FastByteArrayOutputStream} needed to store all the labels for a batch.
-	 * @param tempDir a temporary directory for the batches, or <code>null</code> for {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
+	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be
+	 *            allocated by this method, plus an additional {@link FastByteArrayOutputStream} needed
+	 *            to store all the labels for a batch.
+	 * @param tempDir a temporary directory for the batches, or <code>null</code> for
+	 *            {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
 	 * @param pl a progress logger.
 	 * @return an immutable, sequentially accessible graph obtained by transposing <code>g</code>.
 	 */
