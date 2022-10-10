@@ -33,10 +33,8 @@ public class UnionImmutableGraph extends ImmutableGraph {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Transform.class);
 	@SuppressWarnings("unused")
 	private static final boolean DEBUG = false;
-	@SuppressWarnings("unused")
-	private static final boolean ASSERTS = false;
 
-	private static final int INITIAL_ARRAY_SIZE = 16;
+	private static final int INITIAL_ARRAY_SIZE = 64;
 
 	private final ImmutableGraph g0, g1;
 	private final int n0, n1, numNodes;
@@ -68,12 +66,11 @@ public class UnionImmutableGraph extends ImmutableGraph {
 		return new UnionImmutableGraph(g0.copy(), g1.copy());
 	}
 
-
 	private static class InternalNodeIterator extends NodeIterator {
 		/** If outdegree is nonnegative, the successors of the current node (this array may be, however, larger). */
 		private int cache[];
 		/** The outdegree of the current node, or -1 if the successor array for the current node has not been computed yet. */
-		private int outdegree;
+		private int outdegree = -1;
 		private NodeIterator i0;
 		private NodeIterator i1;
 
@@ -170,9 +167,8 @@ public class UnionImmutableGraph extends ImmutableGraph {
 	private void fillCache(final int x) {
 		if (x == cachedNode) return;
 		final MergedIntIterator merge = new MergedIntIterator(x < n0? g0.successors(x) : LazyIntIterators.EMPTY_ITERATOR, x < n1? g1.successors(x) : LazyIntIterators.EMPTY_ITERATOR);
-		outdegree = 0;
-		cache = new int[INITIAL_ARRAY_SIZE];
-		outdegree += LazyIntIterators.unwrap(merge, cache);
+		int[] cache = new int[INITIAL_ARRAY_SIZE];
+		outdegree = LazyIntIterators.unwrap(merge, cache);
 		int upto, t;
 		while ((t = merge.nextInt()) != -1) {
 			upto = cache.length;
@@ -181,6 +177,8 @@ public class UnionImmutableGraph extends ImmutableGraph {
 			outdegree++;
 			outdegree += LazyIntIterators.unwrap(merge, cache, upto, cache.length - upto);
 		}
+
+		this.cache = cache;
 		cachedNode = x;
 	}
 
