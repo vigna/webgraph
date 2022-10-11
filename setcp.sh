@@ -1,18 +1,20 @@
-JAR=webgraph
+#!/bin/sh
 
-sourcedir=$(cd $(dirname ${BASH_ARGV[0]}) && pwd) 
-count=$(\ls -1 $sourcedir/$JAR-*.jar 2>/dev/null | wc -l)
+sourcedir=$(cd -- "$(dirname "$0")" && pwd)
+webgraphjars=$(find "$sourcedir" -maxdepth 1 -name "*.jar" | grep "webgraph-")
+count=$(echo "$webgraphjars" | wc -l)
 
-if (( count == 0 )); then
-	echo "WARNING: no $JAR jar file."
-elif (( count > 1 )); then
-	echo "WARNING: several $JAR jar files ($(\ls -m $sourcedir/$JAR-*.jar))"
+if [ "$count" -eq 0 ]; then
+	echo "WARNING: no webgraph jar file."
+elif [ "$count" -gt 1 ]; then
+	echo "WARNING: several webgraph jar files: $webgraphjars"
 else
-	if echo $CLASSPATH | grep -q slf4j; then
-		deps=$(\ls -1 $sourcedir/jars/runtime/*.jar | grep -v slf4j | paste -d: -s)
+	if echo "$CLASSPATH" | grep -q slf4j; then
+		deps=$(find "$sourcedir"/jars/runtime -name "*.jar" | grep -v slf4j | paste -d: -s -)
 	else
-		deps=$(\ls -1 $sourcedir/jars/runtime/*.jar | paste -d: -s)
+		deps=$(find "$sourcedir"/jars/runtime -name "*.jar" | paste -d: -s -)
 	fi
 
-	export CLASSPATH=$(ls -1 $sourcedir/$JAR-*.jar | tail -n 1):$deps:$CLASSPATH
+	CLASSPATH=$webgraphjars:$deps:$CLASSPATH
+	export CLASSPATH
 fi

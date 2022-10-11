@@ -13,6 +13,7 @@ Building
 --------
 
 You need [Ant](https://ant.apache.org/) and [Ivy](https://ant.apache.org/ivy/).
-Then, run `ant ivy-setupjars jar`.
+
+Then, run `ant ivy-setupjars jar` and set your `CLASSPATH` by `source setcp.sh`
 
 seba (<mailto:sebastiano.vigna@unimi.it>)
