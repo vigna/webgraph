@@ -50,7 +50,7 @@ public class BitStreamArcLabelledGraphTest {
 	private static final int[] BATCH_SIZES = { 1, 2, 4, 5, 16 };
 
 	@Test
-	public void testCompression() throws IOException, IllegalArgumentException, SecurityException {
+	public void testParallelCompression() throws IOException, IllegalArgumentException, SecurityException {
 		ImmutableGraph g = new ErdosRenyiGraph(300000, 1E-6);
 		final File basename = BVGraphTest.storeTempGraph(g);
 		g = ImmutableGraph.load(basename.toString());
@@ -65,6 +65,11 @@ public class BitStreamArcLabelledGraphTest {
 		BVGraph.store(s, basename.toString());
 		BitStreamArcLabelledImmutableGraph.store(s, basenameLabel, basename.toString());
 		assertEquals(s, BitStreamArcLabelledImmutableGraph.load(basenameLabel));
+
+		BVGraphTest.deleteGraph(basename);
+		new File(basenameLabel + ImmutableGraph.PROPERTIES_EXTENSION).delete();
+		new File(basenameLabel + BitStreamArcLabelledImmutableGraph.LABELS_EXTENSION).delete();
+		new File(basenameLabel + BitStreamArcLabelledImmutableGraph.LABEL_OFFSETS_EXTENSION).delete();
 	}
 
 	public static File storeTempGraph(final ArcLabelledImmutableGraph g) throws IOException, IllegalArgumentException, SecurityException {
