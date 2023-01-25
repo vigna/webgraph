@@ -782,7 +782,7 @@ public class Transform {
 	 *         {@code g}.
 	 * @see #symmetrizeOffline(ArcLabelledImmutableGraph, LabelMergeStrategy, int, File)
 	 */
-	public static ImmutableGraph symmetrizeOffline(final ArcLabelledImmutableGraph g, final LabelMergeStrategy labelMergeStrategy, final int batchSize) throws IOException {
+	public static ArcLabelledImmutableGraph symmetrizeOffline(final ArcLabelledImmutableGraph g, final LabelMergeStrategy labelMergeStrategy, final int batchSize) throws IOException {
 		return symmetrizeOffline(g, labelMergeStrategy, batchSize, null, null);
 	}
 
@@ -801,7 +801,7 @@ public class Transform {
 	 *         {@code g}.
 	 * @see #symmetrizeOffline(ArcLabelledImmutableGraph, LabelMergeStrategy, int, File, ProgressLogger)
 	 */
-	public static ImmutableGraph symmetrizeOffline(final ArcLabelledImmutableGraph g, final LabelMergeStrategy labelMergeStrategy, final int batchSize, final File tempDir) throws IOException {
+	public static ArcLabelledImmutableGraph symmetrizeOffline(final ArcLabelledImmutableGraph g, final LabelMergeStrategy labelMergeStrategy, final int batchSize, final File tempDir) throws IOException {
 		return symmetrizeOffline(g, labelMergeStrategy, batchSize, tempDir, null);
 	}
 
@@ -825,7 +825,7 @@ public class Transform {
 	 * @return an immutable, sequentially accessible arc-labelled graph obtained by symmetrizing
 	 *         {@code g}.
 	 */
-	public static ImmutableGraph symmetrizeOffline(final ArcLabelledImmutableGraph g, final LabelMergeStrategy labelMergeStrategy, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
+	public static ArcLabelledImmutableGraph symmetrizeOffline(final ArcLabelledImmutableGraph g, final LabelMergeStrategy labelMergeStrategy, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
 		return union(g, transposeOffline(g, batchSize, tempDir, pl), labelMergeStrategy);
 	}
 

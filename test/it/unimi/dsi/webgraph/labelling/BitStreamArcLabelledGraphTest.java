@@ -60,6 +60,11 @@ public class BitStreamArcLabelledGraphTest {
 		BVGraph.store(bsalg, basename.toString());
 		BitStreamArcLabelledImmutableGraph.store(bsalg, basenameLabel, basename.toString());
 		assertEquals(bsalg, BitStreamArcLabelledImmutableGraph.load(basenameLabel));
+
+		final ArcLabelledImmutableGraph s = Transform.symmetrizeOffline(bsalg, (final Label first, final Label second) -> first, 10000000);
+		BVGraph.store(s, basename.toString());
+		BitStreamArcLabelledImmutableGraph.store(s, basenameLabel, basename.toString());
+		assertEquals(s, BitStreamArcLabelledImmutableGraph.load(basenameLabel));
 	}
 
 	public static File storeTempGraph(final ArcLabelledImmutableGraph g) throws IOException, IllegalArgumentException, SecurityException {
