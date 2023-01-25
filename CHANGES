@@ -2,6 +2,8 @@
 
 - BidirectionalImmutableGraph has been ported from the big version.
 
+- BitStreamArcLabelledImmutableGraph has now copiable iterators.
+
 3.6.10
 
 - Now ScatteredArcsASCIIGraph propagates BatchGraph's copiable iterators.
