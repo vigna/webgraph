@@ -38,14 +38,29 @@ import it.unimi.dsi.webgraph.LazyIntIterators;
 import it.unimi.dsi.webgraph.NodeIterator;
 import it.unimi.dsi.webgraph.Transform;
 import it.unimi.dsi.webgraph.WebGraphTestCase;
+import it.unimi.dsi.webgraph.examples.ErdosRenyiGraph;
 import it.unimi.dsi.webgraph.examples.IntegerTriplesArcLabelledImmutableGraph;
 
 public class BitStreamArcLabelledGraphTest {
 
+	private static final int LABEL_MASK = -1 >>> 1;
 	private static final int[] SIZES = { 0, 1, 2, 3, 4, 7 };
 	private static final int MAX_WIDTH_FOR_FIXED = 32;
 	private static final int[] WIDTHS = { -1, 0, 1, 2, 3, 8, 32, 40, 41, 63 };
 	private static final int[] BATCH_SIZES = { 1, 2, 4, 5, 16 };
+
+	@Test
+	public void testCompression() throws IOException, IllegalArgumentException, SecurityException {
+		ImmutableGraph g = new ErdosRenyiGraph(300000, 1E-6);
+		final File basename = BVGraphTest.storeTempGraph(g);
+		g = ImmutableGraph.load(basename.toString());
+		final String basenameLabel = createGraphWithGammaLabels(basename, g);
+		final BitStreamArcLabelledImmutableGraph bsalg = BitStreamArcLabelledImmutableGraph.load(basenameLabel);
+		testLabels(bsalg, -1);
+		BVGraph.store(bsalg, basename.toString());
+		BitStreamArcLabelledImmutableGraph.store(bsalg, basenameLabel, basename.toString());
+		assertEquals(bsalg, BitStreamArcLabelledImmutableGraph.load(basenameLabel));
+	}
 
 	public static File storeTempGraph(final ArcLabelledImmutableGraph g) throws IOException, IllegalArgumentException, SecurityException {
 		final File basename = File.createTempFile(BitStreamArcLabelledGraphTest.class.getSimpleName(), "test");
@@ -68,9 +83,9 @@ public class BitStreamArcLabelledGraphTest {
 		final OutputBitStream offsets = createTempBitStream(basename + "-fixedlabel" + BitStreamArcLabelledImmutableGraph.LABEL_OFFSETS_EXTENSION);
 		offsets.writeGamma(0);
 		for(int i = 0; i < n; i++) {
-			int bits = 0;
-			for(final IntIterator j = LazyIntIterators.eager(g.successors(i)); j.hasNext();) bits += labels.writeInt(i * j.nextInt() + i, width);
-			offsets.writeGamma(bits);
+			long bits = 0;
+			for (final IntIterator j = LazyIntIterators.eager(g.successors(i)); j.hasNext();) bits += labels.writeInt(i * j.nextInt() + i & LABEL_MASK, width);
+			offsets.writeLongGamma(bits);
 		}
 		labels.close();
 		offsets.close();
@@ -92,13 +107,13 @@ public class BitStreamArcLabelledGraphTest {
 		final OutputBitStream offsets = createTempBitStream(basename + "-fixedlistlabel" + BitStreamArcLabelledImmutableGraph.LABEL_OFFSETS_EXTENSION);
 		offsets.writeGamma(0);
 		for(int i = 0; i < n; i++) {
-			int bits = 0;
+			long bits = 0;
 			for(final IntIterator j = LazyIntIterators.eager(g.successors(i)); j.hasNext();) {
 				final int succ = j.nextInt();
 				bits += labels.writeGamma((succ + 1) * 2); // list length
-				for(int k = 0; k < (succ + 1) * 2 ; k++) bits += labels.writeInt(i * k + i, width);
+				for (int k = 0; k < (succ + 1) * 2; k++) bits += labels.writeInt(i * k + i & LABEL_MASK, width);
 			}
-			offsets.writeGamma(bits);
+			offsets.writeLongGamma(bits);
 		}
 		labels.close();
 		offsets.close();
@@ -120,10 +135,10 @@ public class BitStreamArcLabelledGraphTest {
 		final OutputBitStream labels = createTempBitStream(basename + "-gammalabel" + BitStreamArcLabelledImmutableGraph.LABELS_EXTENSION);
 		final OutputBitStream offsets = createTempBitStream(basename + "-gammalabel" + BitStreamArcLabelledImmutableGraph.LABEL_OFFSETS_EXTENSION);
 		offsets.writeGamma(0);
-		for(int i = 0; i < n; i++) {
-			int bits = 0;
-			for(final IntIterator j = LazyIntIterators.eager(g.successors(i)); j.hasNext();) bits += labels.writeGamma(i * j.nextInt() + i);
-			offsets.writeGamma(bits);
+		for (int i = 0; i < n; i++) {
+			long bits = 0;
+			for (final IntIterator j = LazyIntIterators.eager(g.successors(i)); j.hasNext();) bits += labels.writeLongGamma(i * j.nextInt() + i & LABEL_MASK);
+			offsets.writeLongGamma(bits);
 		}
 		labels.close();
 		offsets.close();
@@ -149,11 +164,11 @@ public class BitStreamArcLabelledGraphTest {
 			while(d-- != 0) {
 				final int succ = l.nextInt();
 				if (l.label() instanceof AbstractIntLabel)
-					assertEquals(curr + " -> " + succ,(curr * succ + curr) & mask, l.label().getInt());
+					assertEquals(curr + " -> " + succ, curr * succ + curr & LABEL_MASK & mask, l.label().getInt());
 				else {
 					final int[] value = (int[]) l.label().get();
 					assertEquals((succ + 1) * 2, value.length);
-					for(int i = 0; i < value.length; i++) assertEquals("Successor of index " + i + " of " + curr + "(" + succ + ")", (curr * i + curr) & mask, value[i]);
+					for(int i = 0; i < value.length; i++) assertEquals("Successor of index " + i + " of " + curr + "(" + succ + ")", curr * i + curr & LABEL_MASK & mask, value[i]);
 				}
 			}
 		}
@@ -166,11 +181,11 @@ public class BitStreamArcLabelledGraphTest {
 			final Label[] label = nodeIterator.labelArray();
 			for(int i = 0; i < d; i++) {
 				if (label[i] instanceof AbstractIntLabel)
-					assertEquals(curr + " -> " + succ[i], (curr * succ[i] + curr) & mask, label[i].getInt());
+					assertEquals(curr + " -> " + succ[i], curr * succ[i] + curr & LABEL_MASK & mask, label[i].getInt());
 				else {
 					final int[] value = (int[]) label[i].get();
 					assertEquals((succ[i] + 1) * 2, value.length);
-					for(int j = 0; j < value.length; j++) assertEquals((curr * j + curr) & mask, value[j]);
+					for(int j = 0; j < value.length; j++) assertEquals(curr * j + curr & LABEL_MASK & mask, value[j]);
 				}
 			}
 		}
@@ -184,11 +199,11 @@ public class BitStreamArcLabelledGraphTest {
 			while(d-- != 0) {
 				final int succ = l.nextInt();
 				if (l.label() instanceof AbstractIntLabel)
-					assertEquals(curr + " -> " + succ ,(curr * succ + curr) & mask, l.label().getInt());
+					assertEquals(curr + " -> " + succ , curr * succ + curr & LABEL_MASK & mask, l.label().getInt());
 				else {
 					final int[] value = (int[]) l.label().get();
 					assertEquals((succ + 1) * 2, value.length);
-					for(int i = 0; i < value.length; i++) assertEquals((curr * i + curr) & mask, value[i]);
+					for (int i = 0; i < value.length; i++) assertEquals(curr * i + curr & LABEL_MASK & mask, value[i]);
 				}
 			}
 		}
@@ -200,11 +215,11 @@ public class BitStreamArcLabelledGraphTest {
 			final Label[] label = alg.labelArray(curr);
 			for(int i = 0; i < d; i++) {
 				if (label[i] instanceof AbstractIntLabel)
-					assertEquals(curr + " -> " + succ[i], (curr * succ[i] + curr) & mask, label[i].getInt());
+					assertEquals(curr + " -> " + succ[i], curr * succ[i] + curr & LABEL_MASK & mask, label[i].getInt());
 				else {
 					final int[] value = (int[]) label[i].get();
 					assertEquals((succ[i] + 1) * 2, value.length);
-					for(int j = 0; j < value.length; j++) assertEquals((curr * j + curr) & mask, value[j]);
+					for (int j = 0; j < value.length; j++) assertEquals(curr * j + curr & LABEL_MASK & mask, value[j]);
 				}
 			}
 		}

@@ -247,7 +247,7 @@ public class BitStreamArcLabelledImmutableGraph extends ArcLabelledImmutableGrap
 
 	@Override
 	public boolean hasCopiableIterators() {
-		return false;
+		return g.hasCopiableIterators();
 	}
 
 	@Override
@@ -408,17 +408,26 @@ public class BitStreamArcLabelledImmutableGraph extends ArcLabelledImmutableGrap
 	}
 
 	private final static class BitStreamArcLabelledNodeIterator extends ArcLabelledNodeIterator {
-		final private NodeIterator underlyingNodeIterator;
-		final private InputBitStream ibs;
-		final private Label prototype;
+		private final BitStreamArcLabelledImmutableGraph bsalig;
+		private final NodeIterator underlyingNodeIterator;
+		private final InputBitStream ibs;
+		private final Label prototype;
 		private Label[] label = Label.EMPTY_LABEL_ARRAY;
 
-		public BitStreamArcLabelledNodeIterator(final int from, final ImmutableGraph g, final Label prototype, final InputBitStream ibs) {
+		public BitStreamArcLabelledNodeIterator(final int from, final BitStreamArcLabelledImmutableGraph bsalig, final Label prototype, final InputBitStream ibs) {
+			this.bsalig = bsalig;
 			this.prototype = prototype;
 			this.ibs = ibs;
-			underlyingNodeIterator = g.nodeIterator();
+			underlyingNodeIterator = bsalig.g.nodeIterator();
 			// Skip nodes up to from. This is necessary to skip labels, too.
 			for(int i = from; i-- != 0;) nextInt();
+		}
+
+		protected BitStreamArcLabelledNodeIterator(final NodeIterator underlyingNodeIterator, final BitStreamArcLabelledImmutableGraph g, final Label prototype, final InputBitStream ibs) {
+			this.bsalig = g;
+			this.prototype = prototype;
+			this.ibs = ibs;
+			this.underlyingNodeIterator = underlyingNodeIterator;
 		}
 
 		private final static class BitStreamArcLabelledNodeIteratorArcIterator extends AbstractLazyIntIterator implements ArcLabelledNodeIterator.LabelledArcIterator {
@@ -497,12 +506,24 @@ public class BitStreamArcLabelledImmutableGraph extends ArcLabelledImmutableGrap
 		public boolean hasNext() {
 			return underlyingNodeIterator.hasNext();
 		}
+
+		@Override
+		public ArcLabelledNodeIterator copy(final int upperBound) {
+			final InputBitStream ibs;
+			try {
+				ibs = bsalig.newInputBitStream();
+				ibs.position(this.ibs.position());
+			} catch (final IOException e) {
+				throw new RuntimeException(e);
+			}
+			return new BitStreamArcLabelledNodeIterator(underlyingNodeIterator.copy(upperBound), bsalig, prototype, ibs);
+		}
 	}
 
 	@Override
 	public ArcLabelledNodeIterator nodeIterator(final int from) {
 		try {
-			return new BitStreamArcLabelledNodeIterator(from, g, prototype, newInputBitStream());
+			return new BitStreamArcLabelledNodeIterator(from, this, prototype, newInputBitStream());
 		}
 		catch (final FileNotFoundException e) {
 			throw new RuntimeException(e);
