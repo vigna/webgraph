@@ -31,6 +31,7 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.webgraph.labelling.ArcLabelledImmutableGraph;
 import it.unimi.dsi.webgraph.labelling.ArcLabelledNodeIterator;
 import it.unimi.dsi.webgraph.labelling.ArcLabelledNodeIterator.LabelledArcIterator;
+import it.unimi.dsi.webgraph.labelling.BitStreamArcLabelledImmutableGraph;
 import it.unimi.dsi.webgraph.labelling.Label;
 
 /** A base test class providing additional assertions
@@ -101,17 +102,8 @@ public abstract class WebGraphTestCase {
 		assertEquals(n, howManyRead);
 	}
 
-	/** Cleans up a temporary graph.
-	 *
-	 * @param basename the basename.
-	 */
-
-	public static void deleteGraph(final String basename) {
-		deleteGraph(new File(basename));
-	}
-
-
-	/** Cleans up a temporary graph.
+	/**
+	 * Cleans up a temporary graph.
 	 *
 	 * @param basename the basename.
 	 */
@@ -120,6 +112,30 @@ public abstract class WebGraphTestCase {
 		new File(basename + BVGraph.OFFSETS_EXTENSION).delete();
 		new File(basename + BVGraph.OFFSETS_BIG_LIST_EXTENSION).delete();
 		new File(basename + ImmutableGraph.PROPERTIES_EXTENSION).delete();
+	}
+
+	/**
+	 * Cleans up a temporary graph.
+	 *
+	 * @param basename the basename.
+	 */
+
+	public static void deleteGraph(final String basename) {
+		deleteGraph(new File(basename));
+	}
+
+	/**
+	 * Cleans up a temporary {@link BitStreamArcLabelledImmutableGraph}.
+	 *
+	 * @param basename the basename.
+	 * @param basenameUnderlying the basename of the underlying graph.
+	 */
+
+	public static void deleteLabelledGraph(final String basename, final String basenameUnderlying) {
+		BVGraphTest.deleteGraph(basenameUnderlying);
+		new File(basename + ImmutableGraph.PROPERTIES_EXTENSION).delete();
+		new File(basename + BitStreamArcLabelledImmutableGraph.LABELS_EXTENSION).delete();
+		new File(basename + BitStreamArcLabelledImmutableGraph.LABEL_OFFSETS_EXTENSION).delete();
 	}
 
 	/** Performs a stress-test of an immutable graph. All available methods

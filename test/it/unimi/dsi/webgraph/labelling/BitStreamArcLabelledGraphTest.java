@@ -41,7 +41,7 @@ import it.unimi.dsi.webgraph.WebGraphTestCase;
 import it.unimi.dsi.webgraph.examples.ErdosRenyiGraph;
 import it.unimi.dsi.webgraph.examples.IntegerTriplesArcLabelledImmutableGraph;
 
-public class BitStreamArcLabelledGraphTest {
+public class BitStreamArcLabelledGraphTest extends WebGraphTestCase {
 
 	private static final int LABEL_MASK = -1 >>> 1;
 	private static final int[] SIZES = { 0, 1, 2, 3, 4, 7 };
@@ -50,26 +50,71 @@ public class BitStreamArcLabelledGraphTest {
 	private static final int[] BATCH_SIZES = { 1, 2, 4, 5, 16 };
 
 	@Test
-	public void testParallelCompression() throws IOException, IllegalArgumentException, SecurityException {
-		ImmutableGraph g = new ErdosRenyiGraph(300000, 1E-6);
+	public void testCompression() throws IOException, IllegalArgumentException, SecurityException {
+		ImmutableGraph g = new ErdosRenyiGraph(3000, 0.1, 0, false);
 		final File basename = BVGraphTest.storeTempGraph(g);
 		g = ImmutableGraph.load(basename.toString());
 		final String basenameLabel = createGraphWithGammaLabels(basename, g);
 		final BitStreamArcLabelledImmutableGraph bsalg = BitStreamArcLabelledImmutableGraph.load(basenameLabel);
 		testLabels(bsalg, -1);
+
+		deleteLabelledGraph(basenameLabel, basename.toString());
 		BVGraph.store(bsalg, basename.toString());
 		BitStreamArcLabelledImmutableGraph.store(bsalg, basenameLabel, basename.toString());
 		assertEquals(bsalg, BitStreamArcLabelledImmutableGraph.load(basenameLabel));
 
 		final ArcLabelledImmutableGraph s = Transform.symmetrizeOffline(bsalg, (final Label first, final Label second) -> first, 10000000);
+
+		deleteLabelledGraph(basenameLabel, basename.toString());
 		BVGraph.store(s, basename.toString());
 		BitStreamArcLabelledImmutableGraph.store(s, basenameLabel, basename.toString());
 		assertEquals(s, BitStreamArcLabelledImmutableGraph.load(basenameLabel));
 
-		BVGraphTest.deleteGraph(basename);
-		new File(basenameLabel + ImmutableGraph.PROPERTIES_EXTENSION).delete();
-		new File(basenameLabel + BitStreamArcLabelledImmutableGraph.LABELS_EXTENSION).delete();
-		new File(basenameLabel + BitStreamArcLabelledImmutableGraph.LABEL_OFFSETS_EXTENSION).delete();
+		deleteLabelledGraph(basenameLabel, basename.toString());
+	}
+
+	@Test
+	public void testParallelCompressionSparse() throws IOException, IllegalArgumentException, SecurityException {
+		ImmutableGraph g = new ErdosRenyiGraph(300000, 1E-5, 0, false);
+		final File basename = BVGraphTest.storeTempGraph(g);
+		g = ImmutableGraph.load(basename.toString());
+		final String basenameLabel = createGraphWithGammaLabels(basename, g);
+		final BitStreamArcLabelledImmutableGraph bsalg = BitStreamArcLabelledImmutableGraph.load(basenameLabel);
+		testLabels(bsalg, -1);
+
+		deleteLabelledGraph(basenameLabel, basename.toString());
+		BVGraph.storeLabelled(bsalg, basenameLabel, basename.toString());
+		assertEquals(bsalg, BitStreamArcLabelledImmutableGraph.load(basenameLabel));
+
+		final ArcLabelledImmutableGraph s = Transform.symmetrizeOffline(bsalg, (final Label first, final Label second) -> first, 10000000);
+
+		deleteLabelledGraph(basenameLabel, basename.toString());
+		BVGraph.storeLabelled(s, basenameLabel, basename.toString());
+		assertEquals(s, BitStreamArcLabelledImmutableGraph.load(basenameLabel));
+
+		deleteLabelledGraph(basenameLabel, basename.toString());
+	}
+
+	@Test
+	public void testParallelCompressionDense() throws IOException, IllegalArgumentException, SecurityException {
+		ImmutableGraph g = new ErdosRenyiGraph(3000, 0.5, 0, false);
+		final File basename = BVGraphTest.storeTempGraph(g);
+		g = ImmutableGraph.load(basename.toString());
+		final String basenameLabel = createGraphWithGammaLabels(basename, g);
+		final BitStreamArcLabelledImmutableGraph bsalg = BitStreamArcLabelledImmutableGraph.load(basenameLabel);
+		testLabels(bsalg, -1);
+
+		deleteLabelledGraph(basenameLabel, basename.toString());
+		BVGraph.storeLabelled(bsalg, basenameLabel, basename.toString());
+		assertEquals(bsalg, BitStreamArcLabelledImmutableGraph.load(basenameLabel));
+
+		final ArcLabelledImmutableGraph s = Transform.symmetrizeOffline(bsalg, (final Label first, final Label second) -> first, 10000000);
+
+		deleteLabelledGraph(basenameLabel, basename.toString());
+		BVGraph.storeLabelled(s, basenameLabel, basename.toString());
+		assertEquals(s, BitStreamArcLabelledImmutableGraph.load(basenameLabel));
+
+		deleteLabelledGraph(basenameLabel, basename.toString());
 	}
 
 	public static File storeTempGraph(final ArcLabelledImmutableGraph g) throws IOException, IllegalArgumentException, SecurityException {

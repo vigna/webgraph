@@ -37,6 +37,7 @@ import it.unimi.dsi.lang.ObjectParser;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.sux4j.util.EliasFanoMonotoneLongBigList;
 import it.unimi.dsi.webgraph.AbstractLazyIntIterator;
+import it.unimi.dsi.webgraph.BVGraph;
 import it.unimi.dsi.webgraph.ImmutableGraph;
 import it.unimi.dsi.webgraph.LazyIntIterator;
 import it.unimi.dsi.webgraph.NodeIterator;
@@ -539,6 +540,21 @@ public class BitStreamArcLabelledImmutableGraph extends ArcLabelledImmutableGrap
 		store(graph, basename, underlyingBasename, null);
 	}
 
+	/**
+	 * Stores the labels and property file associated with an {@link ArcLabelledImmutableGraph}.
+	 *
+	 * <p>
+	 * Note that the underlying graph must be store separately using the store method of an
+	 * {@link ImmutableGraph} implementation. Exceptionally, for efficiency reasons
+	 * {@linkplain BVGraph#store(ArcLabelledImmutableGraph, CharSequence, CharSequence, int, int, int, int, int, int, ProgressLogger)
+	 * BVGraph contains store methods} that compress a graph and store the label file (in the format of
+	 * this class) at the same time.
+	 *
+	 * @param graph a {@link BitStreamArcLabelledImmutableGraph}.
+	 * @param basename the basename.
+	 * @param underlyingBasename the basename of the underlying graph.
+	 * @param pl a {@link ProgressLogger}, or {@code null}.
+	 */
 	public static void store(final ArcLabelledImmutableGraph graph, final CharSequence basename, final CharSequence underlyingBasename, final ProgressLogger pl) throws IOException {
 		final OutputBitStream labels = new OutputBitStream(basename + LABELS_EXTENSION, STD_BUFFER_SIZE);
 		final OutputBitStream offsets = new OutputBitStream(basename + LABEL_OFFSETS_EXTENSION, STD_BUFFER_SIZE);
@@ -568,10 +584,21 @@ public class BitStreamArcLabelledImmutableGraph extends ArcLabelledImmutableGrap
 		labels.close();
 		offsets.close();
 
+		saveProperties(graph.prototype(), basename, underlyingBasename);
+	}
+
+	/**
+	 * Saves the property file for a {@link BitStreamArcLabelledImmutableGraph}.
+	 *
+	 * @param prototype the prototype of the graph labels.
+	 * @param basename the basename of the {@link BitStreamArcLabelledImmutableGraph}.
+	 * @param underlyingBasename the basename of the underlying graph.
+	 */
+	public static void saveProperties(final Label prototype, final CharSequence basename, final CharSequence underlyingBasename) throws FileNotFoundException {
 		final PrintWriter properties = new PrintWriter(new FileOutputStream(basename + ImmutableGraph.PROPERTIES_EXTENSION));
 		properties.println(ImmutableGraph.GRAPHCLASS_PROPERTY_KEY + " = " + BitStreamArcLabelledImmutableGraph.class.getName());
 		properties.println(ArcLabelledImmutableGraph.UNDERLYINGGRAPH_PROPERTY_KEY + " = " + underlyingBasename);
-		properties.println(BitStreamArcLabelledImmutableGraph.LABELSPEC_PROPERTY_KEY + " = " + graph.prototype().toSpec());
+		properties.println(BitStreamArcLabelledImmutableGraph.LABELSPEC_PROPERTY_KEY + " = " + prototype.toSpec());
 		properties.close();
 	}
 }
