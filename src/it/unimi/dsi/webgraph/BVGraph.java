@@ -2535,8 +2535,6 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 					labelOffsetsIbs.close();
 					labelsFile.delete();
 					labelOffsetsFile.delete();
-
-					BitStreamArcLabelledImmutableGraph.saveProperties(((ArcLabelledImmutableGraph)graph).prototype(), basenameLabel, basename);
 				}
 			}
 
