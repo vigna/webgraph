@@ -903,8 +903,6 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 		return successors(x, ibs, null, null);
 	}
 
-
-
 	/** An iterator returning the offsets. */
 	private final static class OffsetsLongIterator implements LongIterator {
 		private final InputBitStream offsetIbs;
@@ -1048,8 +1046,8 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 				ibs.position(cachedPointer);
 			}
 			else d = outd[x % cyclicBufferSize] = readOutdegree(ibs);
-
 			if (d == 0) return LazyIntIterators.EMPTY_ITERATOR;
+
 
 			// We read the reference only if the actual window size is larger than one (i.e., the one specified by the user is larger than 0).
 			if (windowSize > 0) ref = readReference(ibs);
@@ -1660,10 +1658,10 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 
 
 	/**
-	 * Writes the given graph using a given base name.
+	 * Writes the given graph using a given basename.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename.
 	 * @param windowSize the window size (-1 for the default value).
 	 * @param maxRefCount the maximum reference count (-1 for the default value).
 	 * @param minIntervalLength the minimum interval length (-1 for the default value,
@@ -1690,10 +1688,10 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 	}
 
 	/**
-	 * Writes the given graph using a given base name.
+	 * Writes the given graph using a given basename.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename.
 	 * @param windowSize the window size (-1 for the default value).
 	 * @param maxRefCount the maximum reference count (-1 for the default value).
 	 * @param minIntervalLength the minimum interval length (-1 for the default value,
@@ -1709,13 +1707,15 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 		BVGraph.store(graph, basename, windowSize, maxRefCount, minIntervalLength, zetaK, flags, 0, pl);
 	}
 
-	/** Writes the given graph using a given base name, without any progress logger.
+	/**
+	 * Writes the given graph using a given basename, without any progress logger.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename.
 	 * @param windowSize the window size (-1 for the default value).
 	 * @param maxRefCount the maximum reference count (-1 for the default value).
-	 * @param minIntervalLength the minimum interval length (-1 for the default value, {@link #NO_INTERVALS} to disable).
+	 * @param minIntervalLength the minimum interval length (-1 for the default value,
+	 *            {@link #NO_INTERVALS} to disable).
 	 * @param zetaK the parameter used for residual &zeta;-coding, if used (-1 for the default value).
 	 * @param flags the flag mask.
 	 * @throws IOException if some exception is raised while writing the graph.
@@ -1725,17 +1725,21 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 		BVGraph.store(graph, basename, windowSize, maxRefCount, minIntervalLength, zetaK, flags, 0, (ProgressLogger)null);
 	}
 
-	/** Writes the given graph using a given base name, without any progress logger.
+	/**
+	 * Writes the given graph using a given basename, without any progress logger.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename.
 	 * @param windowSize the window size (-1 for the default value).
 	 * @param maxRefCount the maximum reference count (-1 for the default value).
-	 * @param minIntervalLength the minimum interval length (-1 for the default value, {@link #NO_INTERVALS} to disable).
+	 * @param minIntervalLength the minimum interval length (-1 for the default value,
+	 *            {@link #NO_INTERVALS} to disable).
 	 * @param zetaK the parameter used for residual &zeta;-coding, if used (-1 for the default value).
 	 * @param flags the flag mask.
-	 * @param numberOfThreads the number of threads to use; if 0 or negative, it will be replaced by {@link Runtime#availableProcessors()}. Note that if
-	 * {@link ImmutableGraph#numNodes()} is not implemented by {@code graph}, the number of threads will be automatically set to one, possibly logging a warning.
+	 * @param numberOfThreads the number of threads to use; if 0 or negative, it will be replaced by
+	 *            {@link Runtime#availableProcessors()}. Note that if {@link ImmutableGraph#numNodes()}
+	 *            is not implemented by {@code graph}, the number of threads will be automatically set
+	 *            to one, possibly logging a warning.
 	 * @throws IOException if some exception is raised while writing the graph.
 	 */
 	public static void store(final ImmutableGraph graph, final CharSequence basename, final int windowSize, final int maxRefCount, final int minIntervalLength,
@@ -1744,10 +1748,10 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 	}
 
 	/**
-	 * Writes the given graph using a given base name, with all parameters set to their default values.
+	 * Writes the given graph using a given basename, with all parameters set to their default values.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename.
 	 * @param pl a progress logger to log the state of compression, or {@code null} if no logging is
 	 *            required.
 	 * @throws IOException if some exception is raised while writing the graph.
@@ -1757,10 +1761,10 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 	}
 
 	/**
-	 * Writes the given graph using a given base name, with all parameters set to their default values.
+	 * Writes the given graph using a given basename, with all parameters set to their default values.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename.
 	 * @param numberOfThreads the number of threads to use; if 0 or negative, it will be replaced by
 	 *            {@link Runtime#availableProcessors()}. Note that if {@link ImmutableGraph#numNodes()}
 	 *            is not implemented by {@code graph}, the number of threads will be automatically set
@@ -1774,11 +1778,12 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 	}
 
 
-	/** Writes the given graph using a given base name, without any progress logger and with all
+	/**
+	 * Writes the given graph using a given basename, without any progress logger and with all
 	 * parameters set to their default values.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename.
 	 * @throws IOException if some exception is raised while writing the graph.
 	 */
 	public static void store(final ImmutableGraph graph, final CharSequence basename) throws IOException {
@@ -1787,10 +1792,11 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 
 
 	/**
-	 * Writes the given {@link ArcLabelledImmutableGraph} using a given base name.
+	 * Writes the given {@link ArcLabelledImmutableGraph} using a given basename.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename for the labelled graph.
+	 * @param basenameUnderlying a basename for the underlying graph.
 	 * @param windowSize the window size (-1 for the default value).
 	 * @param maxRefCount the maximum reference count (-1 for the default value).
 	 * @param minIntervalLength the minimum interval length (-1 for the default value,
@@ -1818,10 +1824,11 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 	/* Extra store methods for ArcLabelledImmutableGraph instances. */
 
 	/**
-	 * Writes the given {@link ArcLabelledImmutableGraph} using a given base name.
+	 * Writes the given {@link ArcLabelledImmutableGraph} using a given basename.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename for the labelled graph.
+	 * @param basenameUnderlying a basename for the underlying graph.
 	 * @param windowSize the window size (-1 for the default value).
 	 * @param maxRefCount the maximum reference count (-1 for the default value).
 	 * @param minIntervalLength the minimum interval length (-1 for the default value,
@@ -1838,11 +1845,12 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 	}
 
 	/**
-	 * Writes the given {@link ArcLabelledImmutableGraph} using a given base name, without any progress
+	 * Writes the given {@link ArcLabelledImmutableGraph} using a given basename, without any progress
 	 * logger.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename for the labelled graph.
+	 * @param basenameUnderlying a basename for the underlying graph.
 	 * @param windowSize the window size (-1 for the default value).
 	 * @param maxRefCount the maximum reference count (-1 for the default value).
 	 * @param minIntervalLength the minimum interval length (-1 for the default value,
@@ -1856,11 +1864,12 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 	}
 
 	/**
-	 * Writes the given {@link ArcLabelledImmutableGraph} using a given base name, without any progress
+	 * Writes the given {@link ArcLabelledImmutableGraph} using a given basename, without any progress
 	 * logger.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename for the labelled graph.
+	 * @param basenameUnderlying a basename for the underlying graph.
 	 * @param windowSize the window size (-1 for the default value).
 	 * @param maxRefCount the maximum reference count (-1 for the default value).
 	 * @param minIntervalLength the minimum interval length (-1 for the default value,
@@ -1878,10 +1887,12 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 	}
 
 	/**
-	 * Writes the given {@link ArcLabelledImmutableGraph} using a given base name, with all parameters set to their default values.
+	 * Writes the given {@link ArcLabelledImmutableGraph} using a given basename, with all parameters
+	 * set to their default values.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename for the labelled graph.
+	 * @param basenameUnderlying a basename for the underlying graph.
 	 * @param pl a progress logger to log the state of compression, or {@code null} if no logging is
 	 *            required.
 	 * @throws IOException if some exception is raised while writing the graph.
@@ -1891,10 +1902,11 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 	}
 
 	/**
-	 * Writes the given {@link ArcLabelledImmutableGraph} using a given base name, with all parameters set to their default values.
+	 * Writes the given {@link ArcLabelledImmutableGraph} using a given basename, with all parameters
+	 * set to their default values.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename.
 	 * @param numberOfThreads the number of threads to use; if 0 or negative, it will be replaced by
 	 *            {@link Runtime#availableProcessors()}. Note that if {@link ImmutableGraph#numNodes()}
 	 *            is not implemented by {@code graph}, the number of threads will be automatically set
@@ -1907,11 +1919,12 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 		BVGraph.storeLabelled(graph, basename, basenameUnderlying, -1, -1, -1, -1, 0, numberOfThreads, pl);
 	}
 
-	/** Writes the given  {@link ArcLabelledImmutableGraph} using a given base name, without any progress logger and with all
-	 * parameters set to their default values.
+	/**
+	 * Writes the given {@link ArcLabelledImmutableGraph} using a given basename, without any progress
+	 * logger and with all parameters set to their default values.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
+	 * @param basename a basename.
 	 * @throws IOException if some exception is raised while writing the graph.
 	 */
 	public static void storeLabelled(final ArcLabelledImmutableGraph graph, final CharSequence basename, final CharSequence basenameUnderlying) throws IOException {
@@ -1955,7 +1968,6 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 		 * is not {@code null}; {@code null}, otherwise.
 		 */
 		private final ArcLabelledNodeIterator arcLabelledNodeIterator;
-
 		/**
 		 * The final number of bits in the graph stream; public because it will be retrieved by reflection.
 		 */
@@ -2226,8 +2238,6 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 			}
 			else labelsObs = labelOffsetsObs = null;
 
-
-
 			if (STATS) {
 				offsetStats = new PrintWriter(new FileWriter(threadBasename + ".offsetStats"));
 				referenceStats = new PrintWriter(new FileWriter(threadBasename + ".referenceStats"));
@@ -2405,13 +2415,13 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 	}
 
 	/**
-	 * Writes the given graph <code>graph</code> using a given base name, and the compression parameters
-	 * and flags of this graph object. Note that the latter is relevant only as far as parameters and
-	 * flags are concerned; its content is really irrelevant.
+	 * Writes the given graph using a given basename, and the compression parameters and flags of this
+	 * graph object. Note that the latter is relevant only as far as parameters and flags are concerned;
+	 * its content is really irrelevant.
 	 *
 	 * @param graph a graph to be compressed.
-	 * @param basename a base name.
-	 * @param basenameLabel a base name for the labelled graph if {@code graph} is an
+	 * @param basename a basename.
+	 * @param basenameLabel a basename for the labelled graph if {@code graph} is an
 	 *            {@link ArcLabelledImmutableGraph}; in this case, {@code basename} will be the basename
 	 *            of the underlying graph; otherwise, an {@link IllegalArgumentException} will be
 	 *            thrown.
