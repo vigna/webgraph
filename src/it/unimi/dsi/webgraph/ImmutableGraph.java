@@ -362,15 +362,19 @@ public abstract class ImmutableGraph implements FlyweightPrototype<ImmutableGrap
 		return nodeIterator(0);
 	}
 
-	/** Returns an array of node iterators, scanning each a portion of the nodes of
-	 *  a graph. Iterators are guaranteed to scan mutually disjoint sets of nodes,
-	 *  and every node is guaranteed to be scanned by one iterator.
+	/**
+	 * Returns an array of node iterators, scanning each a portion of the nodes of a graph. Iterators
+	 * are guaranteed to scan mutually disjoint sets of nodes, and every node is guaranteed to be
+	 * scanned by one iterator.
 	 *
-	 * <p>This is an optional operation. If implemented, though, the returned iterators must
-	 * properly implement {@link NodeIterator#copy(int)}.
+	 * <p>
+	 * This is an optional operation. If implemented, though, the returned iterators must properly
+	 * implement {@link NodeIterator#copy(int)}.
 	 *
-	 * @param howMany the number of iterators to be returned (at the end of the array, some of them may be empty).
-	 * @return the required iterators.
+	 * @param howMany the number of iterators to be returned (at the end of the array, some of them may
+	 *            be empty).
+	 * @return the required iterators; some of them might be {@code null} (e.g., if the graph
+	 *         {@linkplain #hasCopiableIterators() does not have copiable iterators}).
 	 */
 	public NodeIterator[] splitNodeIterators(final int howMany) {
 		if (numNodes() == 0 && howMany == 0) return new NodeIterator[0];

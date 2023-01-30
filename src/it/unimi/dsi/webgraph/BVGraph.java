@@ -85,136 +85,162 @@ import it.unimi.dsi.webgraph.labelling.BitStreamArcLabelledImmutableGraph;
 import it.unimi.dsi.webgraph.labelling.Label;
 
 
-/** An immutable graph represented using the techniques described in
- * &ldquo;<a href="http://vigna.di.unimi.it/papers.php#BoVWFI">The WebGraph Framework I: Compression Techniques</a>&rdquo;, by Paolo Boldi and
- * Sebastiano Vigna, in <i>Proc&#46; of the Thirteenth World&ndash;Wide Web
- * Conference</i>, pages 595&minus;601, 2004, ACM Press.
+/**
+ * An immutable graph represented using the techniques described in
+ * &ldquo;<a href="http://vigna.di.unimi.it/papers.php#BoVWFI">The WebGraph Framework I: Compression
+ * Techniques</a>&rdquo;, by Paolo Boldi and Sebastiano Vigna, in <i>Proc&#46; of the Thirteenth
+ * World&ndash;Wide Web Conference</i>, pages 595&minus;601, 2004, ACM Press.
  *
- * <P>This class provides a flexible and configurable way to store and
- * access web graphs in a compressed form.  Its main method can load an
- * {@link ImmutableGraph} and compress it. The resulting compressed {@link
- * BVGraph} is described by a <em>graph file</em> (with extension
- * <code>.graph</code>), an <em>offset file</em> (with extension
- * <code>.offsets</code>) and a <em>property file</em> (with extension
- * <code>.properties</code>). The latter, not surprisingly, is a Java property file.
- * Optionally, an <em>offset big-list file</em> (with extension
+ * <P>
+ * This class provides a flexible and configurable way to store and access web graphs in a
+ * compressed form. Its main method can load an {@link ImmutableGraph} and compress it. The
+ * resulting compressed {@link BVGraph} is described by a <em>graph file</em> (with extension
+ * <code>.graph</code>), an <em>offset file</em> (with extension <code>.offsets</code>) and a
+ * <em>property file</em> (with extension <code>.properties</code>). The latter, not surprisingly,
+ * is a Java property file. Optionally, an <em>offset big-list file</em> (with extension
  * <code>.obl</code>) can be created to load graphs faster.
  *
- * <p>As a rule of thumb, random access is faster using {@link #successors(int)}, whereas
- * while iterating using a {@link NodeIterator} it is better to use {@link NodeIterator#successorArray()}.
+ * <p>
+ * As a rule of thumb, random access is faster using {@link #successors(int)}, whereas while
+ * iterating using a {@link NodeIterator} it is better to use {@link NodeIterator#successorArray()}.
  *
  * <h2>Parallel compression</h2>
  *
- * <p>Starting with version 3.5.0, this classes uses {@link ImmutableGraph#splitNodeIterators(int)} to compress
- * a graph using parallel compression threads. The number of parallel threads can be set at construction time, or
- * using the property {@value it.unimi.dsi.webgraph.ImmutableGraph#NUMBER_OF_THREADS_PROPERTY} from the command line; this approach
- * is useful with classes such as {@link Transform}.
+ * <p>
+ * Starting with version 3.5.0, this classes uses {@link ImmutableGraph#splitNodeIterators(int)} to
+ * compress a graph using parallel compression threads. The number of parallel threads can be set at
+ * construction time, or using the property
+ * {@value it.unimi.dsi.webgraph.ImmutableGraph#NUMBER_OF_THREADS_PROPERTY} from the command line;
+ * this approach is useful with classes such as {@link Transform}.
  *
- * <p>Parallel compression requires the creation of possibly large temporary files. It might be necessary
- * to set the property {@code java.io.tmpdir} to a suitable directory if you experience disk-full errors during compression.
+ * <p>
+ * Parallel compression requires the creation of possibly large temporary files. It might be
+ * necessary to set the property {@code java.io.tmpdir} to a suitable directory if you experience
+ * disk-full errors during compression.
  *
  * <h2>The Graph File</h2>
  *
- * <P>This class stores a graph as an <a href="http://dsiutils.di.unimi.it/docs/it/unimi/dsi/io/InputBitStream.html">bit stream</a>. The bit stream format
- * depends on a number of parameters and encodings that can be mixed
+ * <P>
+ * This class stores a graph as an
+ * <a href="http://dsiutils.di.unimi.it/docs/it/unimi/dsi/io/InputBitStream.html">bit stream</a>.
+ * The bit stream format depends on a number of parameters and encodings that can be mixed
  * orthogonally. The parameters are:
  *
  * <ul>
  *
  * <li>the <em>window size</em>, a nonnegative integer;
- * <li>the <em>maximum reference count</em>, a positive integer (it is meaningful only when the window is nonzero);
- * <li>the <em>minimum interval length</em>, an integer larger than or equal to two, or 0, which is interpreted as infinity.
+ * <li>the <em>maximum reference count</em>, a positive integer (it is meaningful only when the
+ * window is nonzero);
+ * <li>the <em>minimum interval length</em>, an integer larger than or equal to two, or 0, which is
+ * interpreted as infinity.
  *
  * </ul>
  *
  * <H3>Successor Lists</H3>
  *
- * <P>The graph file is a sequence of successor lists, one for each node.
- * The list of node <var>x</var> can be thought of as a sequence of natural numbers (even though, as we will
- * explain later, this sequence is further coded suitably as a sequence of bits):
+ * <P>
+ * The graph file is a sequence of successor lists, one for each node. The list of node <var>x</var>
+ * can be thought of as a sequence of natural numbers (even though, as we will explain later, this
+ * sequence is further coded suitably as a sequence of bits):
  * <OL STYLE="list-style-type: lower-alpha">
- *  <LI>The outdegree of the node; if it is zero, the list ends here.
- *  <LI>If the window size is not zero, the <em>reference part</em>, that is:
- *    <OL><LI>a nonnegative integer, the <em>reference</em>, which never exceeds the window size; if the reference
- *       is <var>r</var>, the list of successors will be specified as a modified version of the list of successors
- *       of <var>x</var>&minus;<var>r</var>; if <var>r</var> is 0, then the list of successors will be specified
- *       explicitly;
- *      <LI>if <var>r</var> is nonzero:
- *         <OL STYLE="list-style-type: lower-roman">
- *            <LI>a natural number <var>b</var>, the <em>block count</em>;
- *            <LI>a sequence of <var>b</var> natural numbers <var>B</var><sub>1</sub>, &hellip;, <var>B</var><sub>b</sub>, called the <em>copy-block list</em>; only the
- *            first number can be zero.
- *        </OL>
+ * <LI>The outdegree of the node; if it is zero, the list ends here.
+ * <LI>If the window size is not zero, the <em>reference part</em>, that is:
+ * <OL>
+ * <LI>a nonnegative integer, the <em>reference</em>, which never exceeds the window size; if the
+ * reference is <var>r</var>, the list of successors will be specified as a modified version of the
+ * list of successors of <var>x</var>&minus;<var>r</var>; if <var>r</var> is 0, then the list of
+ * successors will be specified explicitly;
+ * <LI>if <var>r</var> is nonzero:
+ * <OL STYLE="list-style-type: lower-roman">
+ * <LI>a natural number <var>b</var>, the <em>block count</em>;
+ * <LI>a sequence of <var>b</var> natural numbers <var>B</var><sub>1</sub>, &hellip;,
+ * <var>B</var><sub>b</sub>, called the <em>copy-block list</em>; only the first number can be zero.
+ * </OL>
  *
- *    </OL>
- *  <LI>Then comes the <em>extra part</em>, specifying some more entries that the list of successors contains (or all of them, if
- *   <var>r</var> is zero), that is:
- *    <OL>
- *      <LI>If the minimum interval length is finite,
- *       <OL STYLE="list-style-type: lower-roman">
- *          <LI>an integer <var>i</var>, the <em>interval count</em>;
- *          <LI>a sequence of <var>i</var> pairs, whose first component is the left extreme of an interval,
- *              and whose second component is the length of the interval (i.e., the number of integers contained in the interval).
- *       </OL>
- *      <li>Finally, the list of <em>residuals</em>, which contain all successors not specified by previous methods.
- *    </OL>
- *  </OL>
+ * </OL>
+ * <LI>Then comes the <em>extra part</em>, specifying some more entries that the list of successors
+ * contains (or all of them, if <var>r</var> is zero), that is:
+ * <OL>
+ * <LI>If the minimum interval length is finite,
+ * <OL STYLE="list-style-type: lower-roman">
+ * <LI>an integer <var>i</var>, the <em>interval count</em>;
+ * <LI>a sequence of <var>i</var> pairs, whose first component is the left extreme of an interval,
+ * and whose second component is the length of the interval (i.e., the number of integers contained
+ * in the interval).
+ * </OL>
+ * <li>Finally, the list of <em>residuals</em>, which contain all successors not specified by
+ * previous methods.
+ * </OL>
+ * </OL>
  *
- *    <P>The above data should be interpreted as follows:
- *    <ul>
- *      <li>The reference part, if present (i.e., if both the window size and the reference are strictly positive), specifies
- *          that part of the list of successors of node <var>x</var>&minus;<var>r</var> should be copied; the successors of
- *          node <var>x</var>&minus;<var>r</var> that should be copied are described in the copy-block list; more precisely, one should copy
- *          the first <var>B</var><sub>1</sub> entries of this list, discard the next <var>B</var><sub>2</sub>, copy
- *          the next <var>B</var><sub>3</sub> etc. (the last remaining elements of the list of successors will be copied if <var>b</var> is
- *          even, and discarded if <var>b</var> is odd).
- *      <li>The extra part specifies additional successors (or all of them, if the reference part is absent); the extra part is not present
- *          if the number of successors that are to be copied according to the reference part already coincides with the outdegree of <var>x</var>;
- *          the successors listed in the extra part are given in two forms:
- *          <ul>
- *            <li>some of them are specified as belonging to (integer) intervals, if the minimum interval length is finite;
- *              the interval count indicates how many intervals,
- *              and the intervals themselves are listed as pairs (left extreme, length);
- *            <li>the residuals are the remaining "scattered" successors.
- *          </ul>
- *    </ul>
+ * <P>
+ * The above data should be interpreted as follows:
+ * <ul>
+ * <li>The reference part, if present (i.e., if both the window size and the reference are strictly
+ * positive), specifies that part of the list of successors of node <var>x</var>&minus;<var>r</var>
+ * should be copied; the successors of node <var>x</var>&minus;<var>r</var> that should be copied
+ * are described in the copy-block list; more precisely, one should copy the first
+ * <var>B</var><sub>1</sub> entries of this list, discard the next <var>B</var><sub>2</sub>, copy
+ * the next <var>B</var><sub>3</sub> etc. (the last remaining elements of the list of successors
+ * will be copied if <var>b</var> is even, and discarded if <var>b</var> is odd).
+ * <li>The extra part specifies additional successors (or all of them, if the reference part is
+ * absent); the extra part is not present if the number of successors that are to be copied
+ * according to the reference part already coincides with the outdegree of <var>x</var>; the
+ * successors listed in the extra part are given in two forms:
+ * <ul>
+ * <li>some of them are specified as belonging to (integer) intervals, if the minimum interval
+ * length is finite; the interval count indicates how many intervals, and the intervals themselves
+ * are listed as pairs (left extreme, length);
+ * <li>the residuals are the remaining "scattered" successors.
+ * </ul>
+ * </ul>
  *
  *
  * <H3>How Successor Lists Are Coded</H3>
  *
- * <P>As we said before, the list of integers corresponding to each successor list should be coded into a sequence of bits.
- * This is (ideally) done in two phases: we first modify the sequence in a suitable manner (as explained below) so to obtain
- * another sequence of integers (some of them might be negative). Then each single integer is coded, using a coding that can
- * be specified as an option; the integers that may be negative are first turned into natural numbers using {@link Fast#int2nat(int)}.
+ * <P>
+ * As we said before, the list of integers corresponding to each successor list should be coded into
+ * a sequence of bits. This is (ideally) done in two phases: we first modify the sequence in a
+ * suitable manner (as explained below) so to obtain another sequence of integers (some of them
+ * might be negative). Then each single integer is coded, using a coding that can be specified as an
+ * option; the integers that may be negative are first turned into natural numbers using
+ * {@link Fast#int2nat(int)}.
  *
  * <OL>
- *  <LI>The outdegree of the node is left unchanged, as well as the reference and the block count;
- *  <LI>all blocks are decremented by 1, except for the first one;
- *  <LI>the interval count is left unchanged;
- *  <LI>all interval lengths are decremented by the minimum interval length;
- *  <LI>the first left extreme is expressed as its difference from <var>x</var> (it will be negative if the first extreme is
- *     less than <var>x</var>); the remaining left extremes are expressed as their distance from the previous right extreme
- *     plus 2 (e.g., if the interval is [5..11] and the previous one was [1..3], then the left extreme 5 is expressed as
- *     5-(3+2)=5-5=0);
- *  <LI>the first residual is expressed as its difference from <var>x</var> (it will be negative if the first residual is
- *     less than <var>x</var>); the remaining residuals are expressed as decremented differences from the previous residual.
- *  </OL>
+ * <LI>The outdegree of the node is left unchanged, as well as the reference and the block count;
+ * <LI>all blocks are decremented by 1, except for the first one;
+ * <LI>the interval count is left unchanged;
+ * <LI>all interval lengths are decremented by the minimum interval length;
+ * <LI>the first left extreme is expressed as its difference from <var>x</var> (it will be negative
+ * if the first extreme is less than <var>x</var>); the remaining left extremes are expressed as
+ * their distance from the previous right extreme plus 2 (e.g., if the interval is [5..11] and the
+ * previous one was [1..3], then the left extreme 5 is expressed as 5-(3+2)=5-5=0);
+ * <LI>the first residual is expressed as its difference from <var>x</var> (it will be negative if
+ * the first residual is less than <var>x</var>); the remaining residuals are expressed as
+ * decremented differences from the previous residual.
+ * </OL>
  *
  * <H2>The Offset File</H2>
  *
- * <P>Since the graph is stored as a bit stream, we must have some way to know where each successor list starts.
- * This information is stored in the offset file, which contains the bit offset of each successor list (in particular,
- * the offset of the first successor list will be zero). As a commodity, the offset file contains an additional
- * offset pointing just after the last successor list (providing, as a side-effect, the actual bit length of the graph file).
- * Each offset (except for the first one) is stored as a suitably coded difference from the previous offset.
+ * <P>
+ * Since the graph is stored as a bit stream, we must have some way to know where each successor
+ * list starts. This information is stored in the offset file, which contains the bit offset of each
+ * successor list (in particular, the offset of the first successor list will be zero). As a
+ * commodity, the offset file contains an additional offset pointing just after the last successor
+ * list (providing, as a side-effect, the actual bit length of the graph file). Each offset (except
+ * for the first one) is stored as a suitably coded difference from the previous offset.
  *
- * <p>The list of offsets can be additionally stored as a serialised {@link EliasFanoMonotoneLongBigList}
- * using a suitable command-line option. If the serialised big list is detected, it is loaded instead of parsing the offset list.
+ * <p>
+ * The list of offsets can be additionally stored as a serialised
+ * {@link EliasFanoMonotoneLongBigList} using a suitable command-line option. If the serialised big
+ * list is detected, it is loaded instead of parsing the offset list.
  *
  * <H2>The Property File</H2>
  *
- * <P>This file contains self-explaining entries that are necessary to correctly decode the graph and offset files, and
- * moreover give some statistical information about the compressed graph (e.g., the number of bits per link).
+ * <P>
+ * This file contains self-explaining entries that are necessary to correctly decode the graph and
+ * offset files, and moreover give some statistical information about the compressed graph (e.g.,
+ * the number of bits per link).
  * <dl>
  * <dt><code>nodes</code>
  * <dd>the number of nodes of the graph.
@@ -229,7 +255,9 @@ import it.unimi.dsi.webgraph.labelling.Label;
  * <dt><code>bitspernode</code>
  * <dd>the number of bits per node (overall graph size in bits divided by the number of nodes).
  * <dt><code>compratio</code>
- * <dd>the ratio between the graph size and the information-theoretical lower bound (the binary logarithm of the number of subsets of size <code>arcs</code> out of a universe of <code>nodes</code><sup>2</sup> elements).
+ * <dd>the ratio between the graph size and the information-theoretical lower bound (the binary
+ * logarithm of the number of subsets of size <code>arcs</code> out of a universe of
+ * <code>nodes</code><sup>2</sup> elements).
  * <dt><code>compressionflags</code>
  * <dd>flags specifying the codes used for the components of the compression algorithm.
  * <dt><code>zetak</code>
@@ -245,54 +273,76 @@ import it.unimi.dsi.webgraph.labelling.Label;
  * <dt><code>avgref</code>
  * <dd>the average length of reference chains.
  * <dt><code>bitsfor*</code>
- * <dd>number of bits used by a specific compoenent of the algorithm (the sum is the number of bits used to store the graph).
+ * <dd>number of bits used by a specific compoenent of the algorithm (the sum is the number of bits
+ * used to store the graph).
  * <dt><code>avgbitsfor*</code>
- * <dd>number of bits used by a specific compoenent of the algorithm, divided by the number of nodes (the sum is the number of bits per node).
+ * <dd>number of bits used by a specific compoenent of the algorithm, divided by the number of nodes
+ * (the sum is the number of bits per node).
  * <dt><code>*arcs</code>
  * <dd>the number of arcs stored by each component of the algorithm (the sum is the number of arcs).
  * <dt><code>*expstats</code>
- * <dd>frequencies of the floor of the logarithm of successor gaps and residual gaps, separated by a comma; the statistics include the gap between each node
- * and its first successor, after it has been passed through {@link Fast#int2nat(int)}, but discarding zeroes (which happen in
- * very rare circumstance, and should be considered immaterial).
+ * <dd>frequencies of the floor of the logarithm of successor gaps and residual gaps, separated by a
+ * comma; the statistics include the gap between each node and its first successor, after it has
+ * been passed through {@link Fast#int2nat(int)}, but discarding zeroes (which happen in very rare
+ * circumstance, and should be considered immaterial).
  * <dt><code>*avg[log]gap</code>
- * <dd>the average of the gaps (or of their logarithm) of successors and residuals: note that this data is computed from the exponential statistics above, and
- * thus it is necessarily approximate.
+ * <dd>the average of the gaps (or of their logarithm) of successors and residuals: note that this
+ * data is computed from the exponential statistics above, and thus it is necessarily approximate.
  * </dl>
  *
  * <H2>How The Graph File Is Loaded Into Memory</H2>
  *
- * <P>The natural way of using a graph file is to load it into a byte array and
- * then index its bits using the suitable offset. This class will use a byte
- * array for graphs smaller than {@link Integer#MAX_VALUE} bytes,
- * and a {@link it.unimi.dsi.fastutil.io.FastMultiByteArrayInputStream}
- * otherwise: in the latter case, expect a significant slowdown (as
- * an {@link it.unimi.dsi.io.InputBitStream} can wrap directly
- * a byte array).
+ * <P>
+ * The natural way of using a graph file is to load it into a byte array and then index its bits
+ * using the suitable offset. This class will use a byte array for graphs smaller than
+ * {@link Integer#MAX_VALUE} bytes, and a
+ * {@link it.unimi.dsi.fastutil.io.FastMultiByteArrayInputStream} otherwise: in the latter case,
+ * expect a significant slowdown (as an {@link it.unimi.dsi.io.InputBitStream} can wrap directly a
+ * byte array).
  *
- * <P>Offsets are loaded using an {@link EliasFanoMonotoneLongBigList},
- * which occupies exponentially less space than the graph itself (unless
- * your graph is pathologically sparse). There is of course a cost involved in
- * accessing the list with respect to accessing an array of longs.
+ * <P>
+ * Offsets are loaded using an {@link EliasFanoMonotoneLongBigList}, which occupies exponentially
+ * less space than the graph itself (unless your graph is pathologically sparse). There is of course
+ * a cost involved in accessing the list with respect to accessing an array of longs.
  *
- * <p>Note that by default the {@link EliasFanoMonotoneLongBigList} instance is
- * created from scratch using the file of offsets. This is a long and tedious
- * process, in particular with large graphs. The main method of this class
- * has an option that will generate such a list once for all and serialise it in a file with
- * extension <code>.obl</code>. The list will be quickly deserialised
- * if its modification date is later than that of the offset file.
+ * <p>
+ * Note that by default the {@link EliasFanoMonotoneLongBigList} instance is created from scratch
+ * using the file of offsets. This is a long and tedious process, in particular with large graphs.
+ * The main method of this class has an option that will generate such a list once for all and
+ * serialise it in a file with extension <code>.obl</code>. The list will be quickly deserialised if
+ * its modification date is later than that of the offset file.
  *
  * <H2>Not Loading the Graph File at All</H2>
  *
- * <P>For some applications (such as transposing a graph) it is not necessary to load the graph
- * file in memory. Since this class is able to enumerate the links of a graph without using random
- * access, it is possible not to load in memory any information at all, and obtain iterators that
- * directly read from the graph file. To obtain this effect, you must call {@link #loadOffline(CharSequence)}.
+ * <P>
+ * For some applications (such as transposing a graph) it is not necessary to load the graph file in
+ * memory. Since this class is able to enumerate the links of a graph without using random access,
+ * it is possible not to load in memory any information at all, and obtain iterators that directly
+ * read from the graph file. To obtain this effect, you must call
+ * {@link #loadOffline(CharSequence)}.
  *
  * <H2>Memory&ndash;Mapping a Graph</H2>
  *
- * <p>Another interesting alternative is memory mapping. When using {@link BVGraph#loadMapped(CharSequence)},
- * the graph will be mapped into memory, and the offsets loaded. The graph will provide random access and behave
- * as if it was loaded into memory, but of course the access will be slower.
+ * <p>
+ * Another interesting alternative is memory mapping. When using
+ * {@link BVGraph#loadMapped(CharSequence)}, the graph will be mapped into memory, and the offsets
+ * loaded. The graph will provide random access and behave as if it was loaded into memory, but of
+ * course the access will be slower.
+ *
+ * <H2>Storing Labelled Graphs</H2>
+ *
+ * <p>
+ * This class provides also a family of
+ * {@linkplain #storeLabelled(ArcLabelledImmutableGraph, CharSequence, CharSequence, int, int, int, int, int, ProgressLogger)
+ * storeLabelled()} methods that store an {@link ArcLabelledImmutableGraph} in
+ * {@link BitStreamArcLabelledImmutableGraph} format. While these methods introduce some circularity
+ * in class dependency, and go against the {@link BitStreamArcLabelledImmutableGraph} design of
+ * decoupling the implementation of the underlying graph from the implementation of the arc labels,
+ * they are much more efficient as they store the underlying graph and its labels in a single pass
+ * over the source graph. This is particularly useful when
+ * {@linkplain Transform#transposeOffline(ImmutableGraph, int, File, ProgressLogger) transposing} or
+ * {@linkplain Transform#symmetrizeOffline(ArcLabelledImmutableGraph, it.unimi.dsi.webgraph.labelling.LabelMergeStrategy, int, File, ProgressLogger)
+ * symmetrizing} a labelled graph in an offline fashion.
  */
 
 @SuppressWarnings("resource")
@@ -1882,18 +1932,48 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 
 	@SuppressWarnings("unused")
 	private final class CompressionThread implements Callable<Void> {
-		public final CharSequence threadBasename;
+		/** The index of this compression thread. */
+		private final int index;
+		/** The number of nodes of the overall graph. */
+		private final int numNodes;
+		/**
+		 * The basename of the (intermediate, in the case of multiple threads) graph generated by this
+		 * thread.
+		 */
+		private final CharSequence threadBasename;
+		/**
+		 * If not {@code null}, the basename of the (intermediate, in the case of multiple threads) label
+		 * files generated by this thread.
+		 */
 		private final CharSequence threadBasenameLabel;
+		/** The common progress logger. */
 		private final ProgressLogger pl;
-		public final NodeIterator nodeIterator;
-		public final ArcLabelledNodeIterator arcLabelledNodeIterator;
+		/** The node iterator whose output should be compressed by this thread. */
+		private final NodeIterator nodeIterator;
+		/**
+		 * {{@link #nodeIterator} cast to an {@link ArcLabelledNodeIterator} if {@link #threadBasenameLabel}
+		 * is not {@code null}; {@code null}, otherwise.
+		 */
+		private final ArcLabelledNodeIterator arcLabelledNodeIterator;
 
+		/**
+		 * The final number of bits in the graph stream; public because it will be retrieved by reflection.
+		 */
 		public long graphWrittenBits;
-		public long offsetsWrittenBits;
-		public long labelsWrittenBits;
-		public long labelOffsetsWrittenBits;
-
+		/** The final number of bits in the graph offset stream. */
+		private long offsetsWrittenBits;
+		/**
+		 * The final number of bits in the label stream, if {@link #threadBasenameLabel} is not {@code null}
+		 */
+		private long labelsWrittenBits;
+		/**
+		 * The final number of bits in the label offset stream, if {@link #threadBasenameLabel} is not
+		 * {@code null}
+		 */
+		private long labelOffsetsWrittenBits;
+		/** The size of the buffer for output bit streams. */
 		private final int bufferSize;
+		/** The number of processed nodes after which stats will be printed. */
 		private final int statsThreshold;
 
 		/** Statistics for the gap width of successor lists (exponentially binned). */
@@ -1917,16 +1997,14 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 		/** The number of arcs that are represented explicitly. */
 		public long residualArcs;
 
+		// For stats; public because they will be retrieved by reflection.
 		public long totRef = 0, totDist = 0, totLinks = 0;
-		private final int index;
-		private final int numNodes;
-
 
 		private CompressionThread(final int index, final int numNodes, final NodeIterator nodeIterator, final CharSequence basename, final CharSequence basenameLabel, final int bufferSize, final int statsThreshold, final ProgressLogger pl) {
 			this.index = index;
 			this.numNodes = numNodes;
 			this.nodeIterator = nodeIterator;
-			this.arcLabelledNodeIterator = nodeIterator instanceof ArcLabelledNodeIterator ? (ArcLabelledNodeIterator)nodeIterator : null;
+			this.arcLabelledNodeIterator = basenameLabel != null ? (ArcLabelledNodeIterator)nodeIterator : null;
 			this.bufferSize = bufferSize;
 			this.threadBasename = basename;
 			this.threadBasenameLabel = basenameLabel;
@@ -2142,7 +2220,7 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 			final OutputBitStream labelsObs;
 			final OutputBitStream labelOffsetsObs;
 
-			if (arcLabelledNodeIterator != null) {
+			if (threadBasenameLabel != null) {
 				labelsObs = new OutputBitStream(new FileOutputStream(threadBasenameLabel + LABELS_EXTENSION), bufferSize);
 				(labelOffsetsObs = new OutputBitStream(new FileOutputStream(threadBasenameLabel + LABEL_OFFSETS_EXTENSION), bufferSize)).writeGamma(0);
 			}
@@ -2173,6 +2251,7 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 			successorGapStats = new long[32];
 			residualGapStats = new long[32];
 
+			// Hack to avoid that the progress logger time includes the running time, e.g., of transposition.
 			nodeIterator.hasNext();
 
 			if (pl != null && index == 0) { // Only the first thread starts the logger
@@ -2237,7 +2316,7 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 						refCount[currIndex] = refCount[bestCand] + 1;
 						diffComp(graphObs, currNode, bestRef, list[bestCand], listLen[bestCand], list[currIndex], listLen[currIndex], true);
 
-						if (arcLabelledNodeIterator != null) {
+						if (threadBasenameLabel != null) {
 							final Label[] label = arcLabelledNodeIterator.labelArray();
 							long bits = 0;
 							for (int i = 0; i < outd; i++) bits += label[i].toBitStream(labelsObs, currNode);
@@ -2252,7 +2331,7 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 						throw e;
 					}
 				}
-				else if (arcLabelledNodeIterator != null) labelOffsetsObs.writeGamma(0);
+				else if (threadBasenameLabel != null) labelOffsetsObs.writeGamma(0);
 
 				if(pl != null) {
 					if (((currNode + 1) & statsThreshold) == 0) pl.logger().info(new Formatter(Locale.ROOT).format(
@@ -2285,7 +2364,7 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 			graphObs.close();
 			offsetObs.close();
 
-			if (arcLabelledNodeIterator != null) {
+			if (threadBasenameLabel != null) {
 				labelsWrittenBits = labelsObs.writtenBits();
 				labelOffsetsWrittenBits = labelOffsetsObs.writtenBits();
 
@@ -2384,7 +2463,7 @@ public class BVGraph extends ImmutableGraph implements CompressionFlags, Seriali
 				final File tempFile = File.createTempFile(BVGraph.class.getSimpleName(), "-tmp.graph");
 				tempFile.deleteOnExit();
 				// We use the same basename for the underlying graph and the labels, as there's no conflict
-				executorCompletionService.submit(compressionThread[i] = new CompressionThread(i, n, splitNodeIterators[i], tempFile.toString(), tempFile.toString(), MULTITHREAD_BUFFER_SIZE, statsThreshold, pl));
+				executorCompletionService.submit(compressionThread[i] = new CompressionThread(i, n, splitNodeIterators[i], tempFile.toString(), basenameLabel != null ? tempFile.toString() : null, MULTITHREAD_BUFFER_SIZE, statsThreshold, pl));
 			}
 		}
 
