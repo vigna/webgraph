@@ -1,33 +1,34 @@
 package it.unimi.dsi.webgraph.scratch;
 
 /*
- *  Copyright (C) 2012-2021 Paolo Boldi and Sebastiano Vigna
+ * Copyright (C) 2012-2023 Paolo Boldi and Sebastiano Vigna
  *
- *  This program is free software; you can redistribute it and/or modify it
- *  under the terms of the GNU General Public License as published by the Free
- *  Software Foundation; either version 3 of the License, or (at your option)
- *  any later version.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the Free
+ * Software Foundation; either version 3 of the License, or (at your option)
+ * any later version.
  *
- *  This program is distributed in the hope that it will be useful, but
- *  WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
- *  or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- *  for more details.
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+ * or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <http://www.gnu.org/licenses/>.
  *
  */
 
 import static org.junit.Assert.assertEquals;
+
+import java.util.Arrays;
+
+import org.junit.Test;
+
 import it.unimi.dsi.webgraph.ArrayListMutableGraph;
 import it.unimi.dsi.webgraph.ImmutableGraph;
 import it.unimi.dsi.webgraph.Transform;
 import it.unimi.dsi.webgraph.examples.ErdosRenyiGraph;
 import it.unimi.dsi.webgraph.jung.JungAdapter;
-
-import java.util.Arrays;
-
-import org.junit.Test;
 
 
 
@@ -62,7 +63,7 @@ public class ParallelBreadthFirstBetweennessCentralityTest {
 
 	@Test
 	public void testCycle() throws InterruptedException {
-		for(int size: new int[] { 10, 50, 100 }) {
+		for(final int size: new int[] { 10, 50, 100 }) {
 			final ImmutableGraph graph = ArrayListMutableGraph.newDirectedCycle(size).immutableView();
 			final ParallelBreadthFirstBetweennessCentrality betweennessCentrality = new ParallelBreadthFirstBetweennessCentrality(graph);
 			betweennessCentrality.compute();
@@ -75,7 +76,7 @@ public class ParallelBreadthFirstBetweennessCentralityTest {
 
 	@Test
 	public void testClique() throws InterruptedException {
-		for(int size: new int[] { 10, 50, 100 }) {
+		for(final int size: new int[] { 10, 50, 100 }) {
 			final ImmutableGraph graph = ArrayListMutableGraph.newCompleteGraph(size, false).immutableView();
 			final ParallelBreadthFirstBetweennessCentrality betweennessCentrality = new ParallelBreadthFirstBetweennessCentrality(graph);
 			betweennessCentrality.compute();
@@ -88,14 +89,14 @@ public class ParallelBreadthFirstBetweennessCentralityTest {
 
 	@Test
 	public void testCliqueNobridgeCycle() throws InterruptedException {
-		for(int p: new int[] { 10, 50, 100 }) {
-			for(int k: new int[] { 10, 50, 100 }) {
-				ArrayListMutableGraph mg = new ArrayListMutableGraph(p + k);
+		for(final int p: new int[] { 10, 50, 100 }) {
+			for(final int k: new int[] { 10, 50, 100 }) {
+				final ArrayListMutableGraph mg = new ArrayListMutableGraph(p + k);
 				for(int i = 0; i < k; i++)
 					for(int j = 0; j < k; j++)
 						if (i != j) mg.addArc(i, j);
 				for(int i = 0; i < p; i++) mg.addArc(k + i, k + (i + 1) % p);
-				ImmutableGraph g = mg.immutableView();
+				final ImmutableGraph g = mg.immutableView();
 
 				final ParallelBreadthFirstBetweennessCentrality betweennessCentrality = new ParallelBreadthFirstBetweennessCentrality(g);
 				betweennessCentrality.compute();
@@ -112,15 +113,15 @@ public class ParallelBreadthFirstBetweennessCentralityTest {
 
 	@Test
 	public void testCliqueForwardbridgeCycle() throws InterruptedException {
-		for(int p: new int[] { 10, 50, 100 }) {
-			for(int k: new int[] { 10, 50, 100 }) {
-				ArrayListMutableGraph mg = new ArrayListMutableGraph(p + k);
+		for(final int p: new int[] { 10, 50, 100 }) {
+			for(final int k: new int[] { 10, 50, 100 }) {
+				final ArrayListMutableGraph mg = new ArrayListMutableGraph(p + k);
 				for(int i = 0; i < k; i++)
 					for(int j = 0; j < k; j++)
 						if (i != j) mg.addArc(i, j);
 				for(int i = 0; i < p; i++) mg.addArc(k + i, k + (i + 1) % p);
 				mg.addArc(k - 1, k);
-				ImmutableGraph g = mg.immutableView();
+				final ImmutableGraph g = mg.immutableView();
 
 				final ParallelBreadthFirstBetweennessCentrality betweennessCentrality = new ParallelBreadthFirstBetweennessCentrality(g);
 				betweennessCentrality.compute();
@@ -138,15 +139,15 @@ public class ParallelBreadthFirstBetweennessCentralityTest {
 
 	@Test
 	public void testCliqueBackbridgeCycle() throws InterruptedException {
-		for(int p: new int[] { 10, 50, 100 }) {
-			for(int k: new int[] { 10, 50, 100 }) {
-				ArrayListMutableGraph mg = new ArrayListMutableGraph(p + k);
+		for(final int p: new int[] { 10, 50, 100 }) {
+			for(final int k: new int[] { 10, 50, 100 }) {
+				final ArrayListMutableGraph mg = new ArrayListMutableGraph(p + k);
 				for(int i = 0; i < k; i++)
 					for(int j = 0; j < k; j++)
 						if (i != j) mg.addArc(i, j);
 				for(int i = 0; i < p; i++) mg.addArc(k + i, k + (i + 1) % p);
 				mg.addArc(k, k - 1);
-				ImmutableGraph g = mg.immutableView();
+				final ImmutableGraph g = mg.immutableView();
 
 				final ParallelBreadthFirstBetweennessCentrality betweennessCentrality = new ParallelBreadthFirstBetweennessCentrality(g);
 				betweennessCentrality.compute();
@@ -164,16 +165,16 @@ public class ParallelBreadthFirstBetweennessCentralityTest {
 
 	@Test
 	public void testCliqueBibridgeCycle() throws InterruptedException {
-		for(int p: new int[] { 10, 50, 100 }) {
-			for(int k: new int[] { 10, 50, 100 }) {
-				ArrayListMutableGraph mg = new ArrayListMutableGraph(p + k);
+		for(final int p: new int[] { 10, 50, 100 }) {
+			for(final int k: new int[] { 10, 50, 100 }) {
+				final ArrayListMutableGraph mg = new ArrayListMutableGraph(p + k);
 				for(int i = 0; i < k; i++)
 					for(int j = 0; j < k; j++)
 						if (i != j) mg.addArc(i, j);
 				for(int i = 0; i < p; i++) mg.addArc(k + i, k + (i + 1) % p);
 				mg.addArc(k, k - 1);
 				mg.addArc(k - 1, k);
-				ImmutableGraph g = mg.immutableView();
+				final ImmutableGraph g = mg.immutableView();
 
 				final ParallelBreadthFirstBetweennessCentrality betweennessCentrality = new ParallelBreadthFirstBetweennessCentrality(g);
 				betweennessCentrality.compute();
@@ -192,15 +193,15 @@ public class ParallelBreadthFirstBetweennessCentralityTest {
 
 	@Test
 	public void testRandom() throws InterruptedException {
-		for (double p: new double[] { .1, .2, .5, .7 })
-			for(int size: new int[] { 10, 50, 100 }) {
+		for (final double p: new double[] { .1, .2, .5, .7 })
+			for(final int size: new int[] { 10, 50, 100 }) {
 				// TODO refactor when symmetrize will return a copiable graph
 				final ImmutableGraph graph = new ArrayListMutableGraph(new ErdosRenyiGraph(size, p, 0, false)).immutableView();
 				final ParallelBreadthFirstBetweennessCentrality betweennessCentrality = new ParallelBreadthFirstBetweennessCentrality(graph);
 				betweennessCentrality.compute();
 
-				JungAdapter jungGraph = new JungAdapter(graph, new ArrayListMutableGraph(Transform.transpose(graph)).immutableView());
-				edu.uci.ics.jung.algorithms.importance.BetweennessCentrality<Integer, Long> jungParallelBreadthFirstBetweennessCentrality = new edu.uci.ics.jung.algorithms.importance.BetweennessCentrality<>(jungGraph);
+				final JungAdapter jungGraph = new JungAdapter(graph, new ArrayListMutableGraph(Transform.transpose(graph)).immutableView());
+				final edu.uci.ics.jung.algorithms.importance.BetweennessCentrality<Integer, Long> jungParallelBreadthFirstBetweennessCentrality = new edu.uci.ics.jung.algorithms.importance.BetweennessCentrality<>(jungGraph);
 				jungParallelBreadthFirstBetweennessCentrality.setRemoveRankScoresOnFinalize(false);
 				jungParallelBreadthFirstBetweennessCentrality.evaluate();
 
