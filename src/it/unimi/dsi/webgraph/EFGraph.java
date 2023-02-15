@@ -21,7 +21,7 @@ import static it.unimi.dsi.bits.Fast.MSBS_STEP_8;
 import static it.unimi.dsi.bits.Fast.ONES_STEP_4;
 import static it.unimi.dsi.bits.Fast.ONES_STEP_8;
 import static it.unimi.dsi.bits.LongArrayBitVector.bit;
-import static it.unimi.dsi.bits.LongArrayBitVector.word;
+import static it.unimi.dsi.bits.LongBigArrayBitVector.word;
 
 import java.io.Closeable;
 import java.io.File;
