@@ -1610,8 +1610,8 @@ public class Transform {
 			// Compute unique pairs
 			u = 1;
 			for(int i = n - 1; i-- != 0;) if (source[i] != source[i + 1] || target[i] != target[i + 1]) u++;
+			batch.writeDelta(u);
 
-			batch.writeDelta(n);
 			int prevSource = source[0];
 			batch.writeDelta(prevSource);
 			batch.writeDelta(target[0]);
