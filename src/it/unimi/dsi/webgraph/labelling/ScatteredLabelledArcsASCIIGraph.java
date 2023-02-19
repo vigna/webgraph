@@ -780,7 +780,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 
 		if (j != 0) {
 			obs.flush();
-			pairs += processTransposeBatch(batchSize, source, target, labelStart, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype);
+			pairs += processTransposeBatch(j, source, target, labelStart, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype);
 		}
 
 		if (pl != null) {
