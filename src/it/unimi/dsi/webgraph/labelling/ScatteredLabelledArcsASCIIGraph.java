@@ -50,7 +50,7 @@ import static it.unimi.dsi.webgraph.Transform.processTransposeBatch;
 
 
 /**
- * Da riscrivere
+ * TODO: write description (adapt the one from ScatteredArcsASCIIGraph)
  */
 
 public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
@@ -68,7 +68,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	 */
 	private static final String IDS_EXTENSION = ".ids";
 	/**
-	 * The batch graph used to return node iterators.
+	 * The labelled batch graph used to return node iterators.
 	 */
 	private final Transform.ArcLabelledBatchGraph arcLabelledBatchGraph;
 	/**
@@ -595,14 +595,6 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 				prototype.toBitStream(obs, s);
 				j++;
 
-				if (symmetrize && s != t) {
-					source[j] = t;
-					target[j] = s;
-					labelStart[j] = obs.writtenBits();
-					prototype.toBitStream(obs, t);
-					j++;
-				}
-
 				if (j == batchSize) {
 					obs.flush();
 					pairs += processTransposeBatch(batchSize, source, target, labelStart, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype);
@@ -611,13 +603,29 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 					j = 0;
 				}
 
+				if (symmetrize && s != t) {
+					source[j] = t;
+					target[j] = s;
+					labelStart[j] = obs.writtenBits();
+					prototype.toBitStream(obs, t);
+					j++;
+
+					if (j == batchSize) {
+						obs.flush();
+						pairs += processTransposeBatch(batchSize, source, target, labelStart, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype);
+						fbos = new FastByteArrayOutputStream();
+						obs = new OutputBitStream(fbos);
+						j = 0;
+					}
+				}
+
 				if (pl != null) pl.lightUpdate();
 			}
 		}
 
 		if (j != 0) {
 			obs.flush();
-			pairs += processTransposeBatch(batchSize, source, target, labelStart, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype);
+			pairs += processTransposeBatch(j, source, target, labelStart, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype);
 		}
 
 		if (pl != null) {
@@ -651,16 +659,17 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		valueFile.delete();
 
 		if (function == null) {
-			this.ids = new long[numNodes];
+			ids = new long[numNodes];
 
 			final long[] result = new long[numNodes];
 			for (int i = numNodes; i-- != 0; ) result[BigArrays.get(value, i)] = BigArrays.get(key, i);
-			this.ids = result;
+			ids = result;
 		}
 
 		key = null;
 		value = null;
 
+		System.out.println(numNodes + " / " + batchSize + " = " + batches.size());
 		this.arcLabelledBatchGraph = new Transform.ArcLabelledBatchGraph(function == null ? numNodes : n, pairs, batches, labelBatches, prototype);
 	}
 
