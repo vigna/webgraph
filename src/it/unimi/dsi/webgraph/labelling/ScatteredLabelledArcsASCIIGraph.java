@@ -31,6 +31,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.OutputBitStream;
+import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
 import it.unimi.dsi.webgraph.ImmutableSequentialGraph;
 import it.unimi.dsi.webgraph.Transform;
@@ -53,14 +54,12 @@ import static it.unimi.dsi.webgraph.Transform.processTransposeBatch;
  */
 
 public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
-	private static final Logger LOGGER = LoggerFactory.getLogger(ScatteredLabelledArcsASCIIGraph.class);
-
-	private final static boolean DEBUG = false;
-
 	/**
 	 * The default batch size.
 	 */
 	public static final int DEFAULT_BATCH_SIZE = 1000000;
+	private static final Logger LOGGER = LoggerFactory.getLogger(ScatteredLabelledArcsASCIIGraph.class);
+	private final static boolean DEBUG = false;
 	/**
 	 * The extension of the identifier file (a binary list of longs).
 	 */
@@ -73,205 +72,6 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	 * The list of identifiers in order of appearance.
 	 */
 	public long[] ids;
-
-	private static final class Long2IntOpenHashBigMap implements java.io.Serializable, Cloneable, Hash {
-		public static final long serialVersionUID = 0L;
-
-		/**
-		 * The big array of keys.
-		 */
-		public transient long[][] key;
-
-		/**
-		 * The big array of values.
-		 */
-		public transient int[][] value;
-
-		/**
-		 * The big array telling whether a position is used.
-		 */
-		private transient boolean[][] used;
-
-		/**
-		 * The acceptable load factor.
-		 */
-		private final float f;
-
-		/**
-		 * The current table size (always a power of 2).
-		 */
-		private transient long n;
-
-		/**
-		 * Threshold after which we rehash. It must be the table size times {@link #f}.
-		 */
-		private transient long maxFill;
-
-		/**
-		 * The mask for wrapping a position counter.
-		 */
-		private transient long mask;
-
-		/**
-		 * The mask for wrapping a segment counter.
-		 */
-		private transient int segmentMask;
-
-		/**
-		 * The mask for wrapping a base counter.
-		 */
-		private transient int baseMask;
-
-		/**
-		 * Number of entries in the set.
-		 */
-		private long size;
-
-		/**
-		 * Initialises the mask values.
-		 */
-		private void initMasks() {
-			this.mask = this.n - 1;
-			/*
-			 * Note that either we have more than one segment, and in this case all segments are
-			 * BigArrays.SEGMENT_SIZE long, or we have exactly one segment whose length is a power of
-			 * two.
-			 */
-			this.segmentMask = this.key[0].length - 1;
-			this.baseMask = this.key.length - 1;
-		}
-
-		/**
-		 * Creates a new hash big set.
-		 *
-		 * <p>The actual table size will be the least power of two greater than
-		 * <code>expected</code>/<code>f</code>.
-		 *
-		 * @param expected the expected number of elements in the set.
-		 * @param f the load factor.
-		 */
-		public Long2IntOpenHashBigMap(final long expected, final float f) {
-			if (f <= 0 || f > 1)
-				throw new IllegalArgumentException("Load factor must be greater than 0 and smaller than or equal to 1");
-			if (this.n < 0) throw new IllegalArgumentException("The expected number of elements must be nonnegative");
-			this.f = f;
-			this.n = bigArraySize(expected, f);
-			this.maxFill = maxFill(this.n, f);
-			this.key = LongBigArrays.newBigArray(this.n);
-			this.value = IntBigArrays.newBigArray(this.n);
-			this.used = BooleanBigArrays.newBigArray(this.n);
-			this.initMasks();
-		}
-
-		/**
-		 * Creates a new hash big set with initial expected {@link Hash#DEFAULT_INITIAL_SIZE} elements and
-		 * {@link Hash#DEFAULT_LOAD_FACTOR} as load factor.
-		 */
-
-		public Long2IntOpenHashBigMap() {
-			this(DEFAULT_INITIAL_SIZE, DEFAULT_LOAD_FACTOR);
-		}
-
-		public int put(final long k, final int v) {
-			final long h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
-
-			// The starting point.
-			int displ = (int)(h & this.segmentMask);
-			int base = (int)((h & this.mask) >>> BigArrays.SEGMENT_SHIFT);
-
-			// There's always an unused entry.
-			while (this.used[base][displ]) {
-				if (k == this.key[base][displ]) {
-					final int oldValue = this.value[base][displ];
-					this.value[base][displ] = v;
-					return oldValue;
-				}
-				base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
-			}
-
-			this.used[base][displ] = true;
-			this.key[base][displ] = k;
-			this.value[base][displ] = v;
-
-			if (++this.size >= this.maxFill) this.rehash(2 * this.n);
-			return -1;
-		}
-
-		public int get(final long k) {
-			final long h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
-
-			// The starting point.
-			int displ = (int)(h & this.segmentMask);
-			int base = (int)((h & this.mask) >>> BigArrays.SEGMENT_SHIFT);
-
-			// There's always an unused entry.
-			while (this.used[base][displ]) {
-				if (k == this.key[base][displ]) return this.value[base][displ];
-				base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
-			}
-
-			return -1;
-		}
-
-		private void rehash(final long newN) {
-			final boolean[][] used = this.used;
-			final long[][] key = this.key;
-			final int[][] value = this.value;
-			final boolean[][] newUsed = BooleanBigArrays.newBigArray(newN);
-			final long[][] newKey = LongBigArrays.newBigArray(newN);
-			final int[][] newValue = IntBigArrays.newBigArray(newN);
-			final long newMask = newN - 1;
-			final int newSegmentMask = newKey[0].length - 1;
-			final int newBaseMask = newKey.length - 1;
-
-			int base = 0, displ = 0;
-			long h;
-			long k;
-
-			for (long i = this.size; i-- != 0; ) {
-
-				while (!used[base][displ]) base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0));
-
-				k = key[base][displ];
-				h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
-
-				// The starting point.
-				int d = (int)(h & newSegmentMask);
-				int b = (int)((h & newMask) >>> BigArrays.SEGMENT_SHIFT);
-
-				while (newUsed[b][d]) b = (b + ((d = (d + 1) & newSegmentMask) == 0 ? 1 : 0)) & newBaseMask;
-
-				newUsed[b][d] = true;
-				newKey[b][d] = k;
-				newValue[b][d] = value[base][displ];
-
-				base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0));
-			}
-
-			this.n = newN;
-			this.key = newKey;
-			this.value = newValue;
-			this.used = newUsed;
-			this.initMasks();
-			this.maxFill = maxFill(this.n, this.f);
-		}
-
-		public void compact() {
-			int base = 0, displ = 0, b = 0, d = 0;
-			for (long i = this.size; i-- != 0; ) {
-				while (!this.used[base][displ])
-					base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
-				this.key[b][d] = this.key[base][displ];
-				this.value[b][d] = this.value[base][displ];
-				base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
-				b = (b + ((d = (d + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
-			}
-		}
-
-		public long size() {
-			return this.size;
-		}
-	}
 
 	/**
 	 * Creates a scattered-arcs ASCII graph.
@@ -428,13 +228,6 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Label labelPrototype, final LabelMapping labelMapping, final Charset charset, final int n, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir) throws IOException {
 		this(is, function, labelPrototype, labelMapping, charset, n, symmetrize, noLoops, batchSize, tempDir, null);
-	}
-
-	// TODO: Move somewhere else
-	// Given a label prototype and a value set the value inside the label without creating a new one
-	// it's like a setter, but for labels.
-	public interface LabelMapping {
-		void apply(Label prototype, String representation);
 	}
 
 	/**
@@ -685,32 +478,6 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		this.arcLabelledBatchGraph = new Transform.ArcLabelledBatchGraph(function == null ? numNodes : n, pairs, batches, labelBatches, prototype);
 	}
 
-	protected static void logBatches(final ObjectArrayList<File> batches, final long pairs, final ProgressLogger pl) {
-		long length = 0;
-		for (final File f : batches) length += f.length();
-		pl.logger().info("Created " + batches.size() + " batches using " + Util.format((double)Byte.SIZE * length / pairs) + " bits/arc.");
-	}
-
-	private final static long getLong(final byte[] array, int offset, int length) {
-		if (length == 0) throw new NumberFormatException("Empty number");
-		int sign = 1;
-		if (array[offset] == '-') {
-			sign = -1;
-			offset++;
-			length--;
-		}
-
-		long value = 0;
-		for (int i = 0; i < length; i++) {
-			final byte digit = array[offset + i];
-			if (digit < '0' || digit > '9') throw new NumberFormatException("Not a digit: " + (char)digit);
-			value *= 10;
-			value += digit - '0';
-		}
-
-		return sign * value;
-	}
-
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
@@ -832,6 +599,32 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		this.arcLabelledBatchGraph = new Transform.ArcLabelledBatchGraph(numNodes, pairs, batches, labelBatches, prototype);
 	}
 
+	protected static void logBatches(final ObjectArrayList<File> batches, final long pairs, final ProgressLogger pl) {
+		long length = 0;
+		for (final File f : batches) length += f.length();
+		pl.logger().info("Created " + batches.size() + " batches using " + Util.format((double)Byte.SIZE * length / pairs) + " bits/arc.");
+	}
+
+	private final static long getLong(final byte[] array, int offset, int length) {
+		if (length == 0) throw new NumberFormatException("Empty number");
+		int sign = 1;
+		if (array[offset] == '-') {
+			sign = -1;
+			offset++;
+			length--;
+		}
+
+		long value = 0;
+		for (int i = 0; i < length; i++) {
+			final byte digit = array[offset + i];
+			if (digit < '0' || digit > '9') throw new NumberFormatException("Not a digit: " + (char)digit);
+			value *= 10;
+			value += digit - '0';
+		}
+
+		return sign * value;
+	}
+
 	@Override
 	public int numNodes() {
 		if (this.arcLabelledBatchGraph == null)
@@ -864,6 +657,225 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	@Override
 	public ScatteredLabelledArcsASCIIGraph copy() {
 		return this;
+	}
+
+	@Override
+	public String toString() {
+		final MutableString ms = new MutableString();
+		ArcLabelledNodeIterator nodeIterator = nodeIterator();
+		ms.append("Nodes: " + numNodes() + "\nArcs: " + numArcs() + "\n");
+		while (nodeIterator.hasNext()) {
+			int node = nodeIterator.nextInt();
+			Label[] labels = nodeIterator.labelArray();
+			ms.append("Successors of " + node + " (degree " + nodeIterator.outdegree() + "):");
+			for (int k = 0; k < nodeIterator.outdegree(); k++) {
+				ms.append(" " + node + " (" + labels[k].get() + ")");
+			}
+			ms.append("\n");
+
+		}
+		return ms.toString();
+	}
+
+	// TODO: Move somewhere else
+	// Given a label prototype and a value set the value inside the label without creating a new one
+	// it's like a setter, but for labels.
+	public interface LabelMapping {
+		void apply(Label prototype, String representation);
+	}
+
+	private static final class Long2IntOpenHashBigMap implements java.io.Serializable, Cloneable, Hash {
+		public static final long serialVersionUID = 0L;
+		/**
+		 * The acceptable load factor.
+		 */
+		private final float f;
+		/**
+		 * The big array of keys.
+		 */
+		public transient long[][] key;
+		/**
+		 * The big array of values.
+		 */
+		public transient int[][] value;
+		/**
+		 * The big array telling whether a position is used.
+		 */
+		private transient boolean[][] used;
+		/**
+		 * The current table size (always a power of 2).
+		 */
+		private transient long n;
+
+		/**
+		 * Threshold after which we rehash. It must be the table size times {@link #f}.
+		 */
+		private transient long maxFill;
+
+		/**
+		 * The mask for wrapping a position counter.
+		 */
+		private transient long mask;
+
+		/**
+		 * The mask for wrapping a segment counter.
+		 */
+		private transient int segmentMask;
+
+		/**
+		 * The mask for wrapping a base counter.
+		 */
+		private transient int baseMask;
+
+		/**
+		 * Number of entries in the set.
+		 */
+		private long size;
+
+		/**
+		 * Creates a new hash big set.
+		 *
+		 * <p>The actual table size will be the least power of two greater than
+		 * <code>expected</code>/<code>f</code>.
+		 *
+		 * @param expected the expected number of elements in the set.
+		 * @param f the load factor.
+		 */
+		public Long2IntOpenHashBigMap(final long expected, final float f) {
+			if (f <= 0 || f > 1)
+				throw new IllegalArgumentException("Load factor must be greater than 0 and smaller than or equal to 1");
+			if (this.n < 0) throw new IllegalArgumentException("The expected number of elements must be nonnegative");
+			this.f = f;
+			this.n = bigArraySize(expected, f);
+			this.maxFill = maxFill(this.n, f);
+			this.key = LongBigArrays.newBigArray(this.n);
+			this.value = IntBigArrays.newBigArray(this.n);
+			this.used = BooleanBigArrays.newBigArray(this.n);
+			this.initMasks();
+		}
+
+		/**
+		 * Creates a new hash big set with initial expected {@link Hash#DEFAULT_INITIAL_SIZE} elements and
+		 * {@link Hash#DEFAULT_LOAD_FACTOR} as load factor.
+		 */
+
+		public Long2IntOpenHashBigMap() {
+			this(DEFAULT_INITIAL_SIZE, DEFAULT_LOAD_FACTOR);
+		}
+
+		/**
+		 * Initialises the mask values.
+		 */
+		private void initMasks() {
+			this.mask = this.n - 1;
+			/*
+			 * Note that either we have more than one segment, and in this case all segments are
+			 * BigArrays.SEGMENT_SIZE long, or we have exactly one segment whose length is a power of
+			 * two.
+			 */
+			this.segmentMask = this.key[0].length - 1;
+			this.baseMask = this.key.length - 1;
+		}
+
+		public int put(final long k, final int v) {
+			final long h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
+
+			// The starting point.
+			int displ = (int)(h & this.segmentMask);
+			int base = (int)((h & this.mask) >>> BigArrays.SEGMENT_SHIFT);
+
+			// There's always an unused entry.
+			while (this.used[base][displ]) {
+				if (k == this.key[base][displ]) {
+					final int oldValue = this.value[base][displ];
+					this.value[base][displ] = v;
+					return oldValue;
+				}
+				base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
+			}
+
+			this.used[base][displ] = true;
+			this.key[base][displ] = k;
+			this.value[base][displ] = v;
+
+			if (++this.size >= this.maxFill) this.rehash(2 * this.n);
+			return -1;
+		}
+
+		public int get(final long k) {
+			final long h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
+
+			// The starting point.
+			int displ = (int)(h & this.segmentMask);
+			int base = (int)((h & this.mask) >>> BigArrays.SEGMENT_SHIFT);
+
+			// There's always an unused entry.
+			while (this.used[base][displ]) {
+				if (k == this.key[base][displ]) return this.value[base][displ];
+				base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
+			}
+
+			return -1;
+		}
+
+		private void rehash(final long newN) {
+			final boolean[][] used = this.used;
+			final long[][] key = this.key;
+			final int[][] value = this.value;
+			final boolean[][] newUsed = BooleanBigArrays.newBigArray(newN);
+			final long[][] newKey = LongBigArrays.newBigArray(newN);
+			final int[][] newValue = IntBigArrays.newBigArray(newN);
+			final long newMask = newN - 1;
+			final int newSegmentMask = newKey[0].length - 1;
+			final int newBaseMask = newKey.length - 1;
+
+			int base = 0, displ = 0;
+			long h;
+			long k;
+
+			for (long i = this.size; i-- != 0; ) {
+
+				while (!used[base][displ]) base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0));
+
+				k = key[base][displ];
+				h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
+
+				// The starting point.
+				int d = (int)(h & newSegmentMask);
+				int b = (int)((h & newMask) >>> BigArrays.SEGMENT_SHIFT);
+
+				while (newUsed[b][d]) b = (b + ((d = (d + 1) & newSegmentMask) == 0 ? 1 : 0)) & newBaseMask;
+
+				newUsed[b][d] = true;
+				newKey[b][d] = k;
+				newValue[b][d] = value[base][displ];
+
+				base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0));
+			}
+
+			this.n = newN;
+			this.key = newKey;
+			this.value = newValue;
+			this.used = newUsed;
+			this.initMasks();
+			this.maxFill = maxFill(this.n, this.f);
+		}
+
+		public void compact() {
+			int base = 0, displ = 0, b = 0, d = 0;
+			for (long i = this.size; i-- != 0; ) {
+				while (!this.used[base][displ])
+					base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
+				this.key[b][d] = this.key[base][displ];
+				this.value[b][d] = this.value[base][displ];
+				base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
+				b = (b + ((d = (d + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
+			}
+		}
+
+		public long size() {
+			return this.size;
+		}
 	}
 
 	/* @SuppressWarnings("unchecked")
