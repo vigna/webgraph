@@ -185,7 +185,6 @@ public class ScatteredLabelledArcsASCIIGraphTest extends WebGraphTestCase {
 	public void testConstructorWithArray() throws IOException {
 		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n0 2\n1 0\n1 2\n2 0\n2 1"), toLabelIterator("a b c d e f"), false, false, 100, null, null);
 		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ArrayListMutableGraph(g).immutableView());
-		System.out.println(Arrays.toString(g.ids));
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
 
 		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("-1 15\n15 2\n2 -1\n-1 2"), toLabelIterator("a b c d"), false, false, 100, null, null);
@@ -221,4 +220,39 @@ public class ScatteredLabelledArcsASCIIGraphTest extends WebGraphTestCase {
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testMissingLabel() throws IOException {
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1\n1 3"), toLabelIterator("a"), false, false, 1, null, null);
+		assertEquals(new ArrayListMutableGraph(2, new int[][] {{0, 1}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
+		assertArrayEquals(new long[] {2, 1}, g.ids);
+	}
+
+	@Test
+	public void testTooManyLabels() throws IOException {
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1\n1 3"), toLabelIterator("a b c"), false, false, 1, null, null);
+		assertEquals(new ArrayListMutableGraph(3, new int[][] {{0, 1}, {1, 2}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
+		assertArrayEquals(new long[] {2, 1, 3}, g.ids);
+	}
+
+	@Test
+	public void testSameArcSameLabel() throws IOException {
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1\n2 1"), toLabelIterator("a a"), false, false, 1, null, null);
+		assertEquals(new ArrayListMutableGraph(2, new int[][] {{0, 1}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
+		assertArrayEquals(new long[] {2, 1}, g.ids);
+	}
+
+	@Test
+	public void testSameArcDifferentLabel() throws IOException {
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1\n2 1"), toLabelIterator("a b"), false, false, 1, null, null);
+		System.out.println(g); // TODO: ONLY THE FIRST IS KEPT! USE LabelMergeStrategy!
+		assertEquals(new ArrayListMutableGraph(2, new int[][] {{0, 1}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
+		assertArrayEquals(new long[] {2, 1}, g.ids);
+	}
+
+	@Test
+	public void testDifferentArcSameLabel() throws IOException {
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n2 3"), toLabelIterator("a a"), false, false, 1, null, null);
+		assertEquals(new ArrayListMutableGraph(4, new int[][] {{0, 1}, {2, 3}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
+		assertArrayEquals(new long[] {0, 1, 2, 3}, g.ids);
+	}
 }

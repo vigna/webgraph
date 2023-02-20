@@ -518,6 +518,11 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 			final long tl = arc[1];
 			int t = map.get(tl);
 			if (t == -1) map.put(tl, t = (int)map.size());
+
+			if (!arcLabels.hasNext()) {
+				throw new IllegalArgumentException("Not enough labels");
+			}
+
 			Label l = arcLabels.next();
 			prototype = prototype == null ? l : prototype;
 
@@ -554,6 +559,10 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 
 				if (pl != null) pl.lightUpdate();
 			}
+		}
+
+		if (arcLabels.hasNext()) {
+			LOGGER.warn("Too many labels and not enough arcs, some label were left without arcs");
 		}
 
 		if (j != 0) {
