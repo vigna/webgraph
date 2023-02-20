@@ -1199,7 +1199,7 @@ public class Transform {
 					final int numPairs = this.numPairs;
 					// Neither quicksort nor heaps are stable, so we reestablish order here.
 					IntArrays.quickSort(successor, 0, numPairs);
-					if (numPairs!= 0) {
+					if (numPairs != 0) {
 						int p = 0;
 						for (int j = 1; j < numPairs; j++) if (successor[p] != successor[j]) successor[++p] = successor[j];
 						outdegree = p + 1;
@@ -1311,6 +1311,8 @@ public class Transform {
 			private int last;
 			/** The outdegree of the current node (valid if {@link #last} is not -1). */
 			private int outdegree;
+			/** The number of pairs associated with the current node (valid if {@link #last} is not -1). */
+			private int numPairs;
 			/** The successors of the current node (valid if {@link #last} is not -1);
 			 * only the first {@link #outdegree} entries are meaningful. */
 			private int[] successor;
@@ -1319,7 +1321,7 @@ public class Transform {
 			private Label[] label;
 
 			public InternalArcLabelledNodeIterator(final int upperBound) throws IOException {
-				this(upperBound, null, null, null, null, null, -1, 0, IntArrays.EMPTY_ARRAY, Label.EMPTY_LABEL_ARRAY);
+				this(upperBound, null, null, null, null, null, -1, -1, IntArrays.EMPTY_ARRAY, Label.EMPTY_LABEL_ARRAY);
 			}
 
 			public InternalArcLabelledNodeIterator(final int upperBound, final InputBitStream[] baseIbs, final InputBitStream[] baseLabelInputBitStream, final int[] refArray, final int[] prevTarget, final int[] inputStreamLength, final int last, final int outdegree, final int successor[], final Label[] label) throws IOException {
@@ -1377,8 +1379,10 @@ public class Transform {
 
 			@Override
 			public int nextInt() {
+				if (! hasNext()) throw new NoSuchElementException();
 				last++;
 				int d = 0;
+				outdegree = -1;
 				int i;
 
 				try {
@@ -1395,8 +1399,8 @@ public class Transform {
 						if (--inputStreamLength[i] == 0) {
 							queue.dequeue();
 							batchIbs[i].close();
-							labelInputBitStream[i].close();
 							batchIbs[i] = null;
+							labelInputBitStream[i].close();
 							labelInputBitStream[i] = null;
 						}
 						else {
@@ -1410,8 +1414,19 @@ public class Transform {
 						}
 						d++;
 					}
+
+					numPairs = d;
+				}
+				catch(final IOException e) {
+					e.printStackTrace();
+					throw new RuntimeException(this + " " + e);
+				}
+
+				// Compute outdegree
+				if (outdegree == -1) {
+					final int numPairs = this.numPairs;
 					// Neither quicksort nor heaps are stable, so we reestablish order here.
-					it.unimi.dsi.fastutil.Arrays.quickSort(0, d, (x, y) -> Integer.compare(successor[x], successor[y]),
+					it.unimi.dsi.fastutil.Arrays.quickSort(0, numPairs, (x, y) -> Integer.compare(successor[x], successor[y]),
 							(x, y) -> {
 								final int t = successor[x];
 								successor[x] = successor[y];
@@ -1420,12 +1435,16 @@ public class Transform {
 								label[x] = label[y];
 								label[y] = l;
 							});
-				}
-				catch(final IOException e) {
-					throw new RuntimeException(e);
+
+					if (numPairs != 0) {
+						// Avoid returning the duplicate arcs
+						int p = 0;
+						for (int j = 1; j < numPairs; j++) if (successor[p] != successor[j]) successor[++p] = successor[j];
+						outdegree = p + 1;
+					}
+					else outdegree = 0;
 				}
 
-				outdegree = d;
 				return last;
 			}
 
@@ -1604,6 +1623,12 @@ public class Transform {
 		batchFile.deleteOnExit();
 		batches.add(batchFile);
 		final OutputBitStream batch = new OutputBitStream(batchFile);
+
+		final File labelFile = File.createTempFile("label-", ".bits", tempDir);
+		labelFile.deleteOnExit();
+		labelBatches.add(labelFile);
+		final OutputBitStream labelObs = new OutputBitStream(labelFile);
+
 		int u = 0;
 
 		if (n != 0) {
@@ -1616,32 +1641,35 @@ public class Transform {
 			batch.writeDelta(prevSource);
 			batch.writeDelta(target[0]);
 
+			labelBitStream.position(start[0]);
+			prototype.fromBitStream(labelBitStream, source[0]);
+			prototype.toBitStream(labelObs, target[0]);
+
 			for(int i = 1; i < n; i++) {
 				if (source[i] != prevSource) {
 					batch.writeDelta(source[i] - prevSource);
 					batch.writeDelta(target[i]);
 					prevSource = source[i];
+
+					labelBitStream.position(start[i]);
+					prototype.fromBitStream(labelBitStream, source[i]);
+					prototype.toBitStream(labelObs, target[i]);
 				}
 				else if (target[i] != target[i - 1]) {
 					// We don't write duplicate pairs
 					batch.writeDelta(0);
 					batch.writeDelta(target[i] - target[i - 1] - 1);
+
+					labelBitStream.position(start[i]);
+					prototype.fromBitStream(labelBitStream, source[i]);
+					prototype.toBitStream(labelObs, target[i]);
 				}
 			}
 		}
+
 		else batch.writeDelta(0);
 
 		batch.close();
-
-		final File labelFile = File.createTempFile("label-", ".bits", tempDir);
-		labelFile.deleteOnExit();
-		labelBatches.add(labelFile);
-		final OutputBitStream labelObs = new OutputBitStream(labelFile);
-		for (int i = 0; i < n; i++) {
-			labelBitStream.position(start[i]);
-			prototype.fromBitStream(labelBitStream, source[i]);
-			prototype.toBitStream(labelObs, target[i]);
-		}
 		labelObs.close();
 
 		return u;
