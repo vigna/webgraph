@@ -666,10 +666,11 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		ms.append("Nodes: " + numNodes() + "\nArcs: " + numArcs() + "\n");
 		while (nodeIterator.hasNext()) {
 			int node = nodeIterator.nextInt();
+			ArcLabelledNodeIterator.LabelledArcIterator successors = nodeIterator.successors();
 			Label[] labels = nodeIterator.labelArray();
 			ms.append("Successors of " + node + " (degree " + nodeIterator.outdegree() + "):");
 			for (int k = 0; k < nodeIterator.outdegree(); k++) {
-				ms.append(" " + node + " (" + labels[k].get() + ")");
+				ms.append(" " + successors.nextInt() + " (" + labels[k].get() + ")");
 			}
 			ms.append("\n");
 
