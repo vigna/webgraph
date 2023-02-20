@@ -48,7 +48,6 @@ import static it.unimi.dsi.fastutil.HashCommon.bigArraySize;
 import static it.unimi.dsi.fastutil.HashCommon.maxFill;
 import static it.unimi.dsi.webgraph.Transform.processTransposeBatch;
 
-
 /**
  * TODO: write description (adapt the one from ScatteredArcsASCIIGraph)
  */
@@ -56,8 +55,7 @@ import static it.unimi.dsi.webgraph.Transform.processTransposeBatch;
 public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ScatteredLabelledArcsASCIIGraph.class);
 
-	// TODO: rollback to false
-	private final static boolean DEBUG = true;
+	private final static boolean DEBUG = false;
 
 	/**
 	 * The default batch size.
@@ -150,7 +148,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		 * <code>expected</code>/<code>f</code>.
 		 *
 		 * @param expected the expected number of elements in the set.
-		 * @param f        the load factor.
+		 * @param f the load factor.
 		 */
 		public Long2IntOpenHashBigMap(final long expected, final float f) {
 			if (f <= 0 || f > 1)
@@ -166,8 +164,8 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		}
 
 		/**
-		 * Creates a new hash big set with initial expected {@link Hash#DEFAULT_INITIAL_SIZE} elements
-		 * and {@link Hash#DEFAULT_LOAD_FACTOR} as load factor.
+		 * Creates a new hash big set with initial expected {@link Hash#DEFAULT_INITIAL_SIZE} elements and
+		 * {@link Hash#DEFAULT_LOAD_FACTOR} as load factor.
 		 */
 
 		public Long2IntOpenHashBigMap() {
@@ -178,8 +176,8 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 			final long h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
 
 			// The starting point.
-			int displ = (int) (h & this.segmentMask);
-			int base = (int) ((h & this.mask) >>> BigArrays.SEGMENT_SHIFT);
+			int displ = (int)(h & this.segmentMask);
+			int base = (int)((h & this.mask) >>> BigArrays.SEGMENT_SHIFT);
 
 			// There's always an unused entry.
 			while (this.used[base][displ]) {
@@ -203,8 +201,8 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 			final long h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
 
 			// The starting point.
-			int displ = (int) (h & this.segmentMask);
-			int base = (int) ((h & this.mask) >>> BigArrays.SEGMENT_SHIFT);
+			int displ = (int)(h & this.segmentMask);
+			int base = (int)((h & this.mask) >>> BigArrays.SEGMENT_SHIFT);
 
 			// There's always an unused entry.
 			while (this.used[base][displ]) {
@@ -232,18 +230,16 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 
 			for (long i = this.size; i-- != 0; ) {
 
-				while (!used[base][displ])
-					base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0));
+				while (!used[base][displ]) base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0));
 
 				k = key[base][displ];
 				h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
 
 				// The starting point.
-				int d = (int) (h & newSegmentMask);
-				int b = (int) ((h & newMask) >>> BigArrays.SEGMENT_SHIFT);
+				int d = (int)(h & newSegmentMask);
+				int b = (int)((h & newMask) >>> BigArrays.SEGMENT_SHIFT);
 
-				while (newUsed[b][d])
-					b = (b + ((d = (d + 1) & newSegmentMask) == 0 ? 1 : 0)) & newBaseMask;
+				while (newUsed[b][d]) b = (b + ((d = (d + 1) & newSegmentMask) == 0 ? 1 : 0)) & newBaseMask;
 
 				newUsed[b][d] = true;
 				newKey[b][d] = k;
@@ -289,7 +285,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is         an input stream containing a standard scattered list of arcs.
+	 * @param is an input stream containing a standard scattered list of arcs.
 	 * @param symmetrize the new graph will be forced to be symmetric.
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Label labelPrototype, final LabelMapping labelMapping, final boolean symmetrize) throws IOException {
@@ -299,9 +295,9 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is         an input stream containing a standard scattered list of arcs.
+	 * @param is an input stream containing a standard scattered list of arcs.
 	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops    the new graph will have no loops.
+	 * @param noLoops the new graph will have no loops.
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Label labelPrototype, final LabelMapping labelMapping, final boolean symmetrize, final boolean noLoops) throws IOException {
 		this(is, labelPrototype, labelMapping, symmetrize, noLoops, DEFAULT_BATCH_SIZE);
@@ -310,10 +306,11 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is         an input stream containing a standard scattered list of arcs.
+	 * @param is an input stream containing a standard scattered list of arcs.
 	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops    the new graph will have no loops.
-	 * @param batchSize  the number of integers in a batch; two arrays of integers of this size will be allocated by this method.
+	 * @param noLoops the new graph will have no loops.
+	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by
+	 * 		this method.
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Label labelPrototype, final LabelMapping labelMapping, final boolean symmetrize, final boolean noLoops, final int batchSize) throws IOException {
 		this(is, labelPrototype, labelMapping, symmetrize, noLoops, batchSize, null);
@@ -322,11 +319,13 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is         an input stream containing a standard scattered list of arcs.
+	 * @param is an input stream containing a standard scattered list of arcs.
 	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops    the new graph will have no loops.
-	 * @param batchSize  the number of integers in a batch; two arrays of integers of this size will be allocated by this method.
-	 * @param tempDir    a temporary directory for the batches, or <code>null</code> for {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
+	 * @param noLoops the new graph will have no loops.
+	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by
+	 * 		this method.
+	 * @param tempDir a temporary directory for the batches, or <code>null</code> for
+	 *        {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Label labelPrototype, final LabelMapping labelMapping, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir) throws IOException {
 		this(is, labelPrototype, labelMapping, symmetrize, noLoops, batchSize, tempDir, null);
@@ -335,12 +334,14 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is         an input stream containing a standard scattered list of arcs.
+	 * @param is an input stream containing a standard scattered list of arcs.
 	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops    the new graph will have no loops.
-	 * @param batchSize  the number of integers in a batch; two arrays of integers of this size will be allocated by this method.
-	 * @param tempDir    a temporary directory for the batches, or <code>null</code> for {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
-	 * @param pl         a progress logger, or <code>null</code>.
+	 * @param noLoops the new graph will have no loops.
+	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by
+	 * 		this method.
+	 * @param tempDir a temporary directory for the batches, or <code>null</code> for
+	 *        {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
+	 * @param pl a progress logger, or <code>null</code>.
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Label labelPrototype, final LabelMapping labelMapping, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
 		this(is, null, labelPrototype, labelMapping, null, -1, symmetrize, noLoops, batchSize, tempDir, pl);
@@ -349,10 +350,12 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is       an input stream containing a scattered list of arcs.
-	 * @param function an explicitly provided function from string representing nodes to node numbers, or <code>null</code> for the standard behaviour.
-	 * @param charset  a character set that will be used to read the identifiers passed to <code>function</code>, or <code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
-	 * @param n        the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param is an input stream containing a scattered list of arcs.
+	 * @param function an explicitly provided function from string representing nodes to node numbers, or
+	 * 		<code>null</code> for the standard behaviour.
+	 * @param charset a character set that will be used to read the identifiers passed to <code>function</code>, or
+	 * 		<code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
+	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Label labelPrototype, final LabelMapping labelMapping, final Charset charset, final int n) throws IOException {
 		this(is, function, labelPrototype, labelMapping, charset, n, false);
@@ -361,10 +364,12 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is         an input stream containing a scattered list of arcs.
-	 * @param function   an explicitly provided function from string representing nodes to node numbers, or <code>null</code> for the standard behaviour.
-	 * @param charset    a character set that will be used to read the identifiers passed to <code>function</code>, or <code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
-	 * @param n          the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param is an input stream containing a scattered list of arcs.
+	 * @param function an explicitly provided function from string representing nodes to node numbers, or
+	 * 		<code>null</code> for the standard behaviour.
+	 * @param charset a character set that will be used to read the identifiers passed to <code>function</code>, or
+	 * 		<code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
+	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
 	 * @param symmetrize the new graph will be forced to be symmetric.
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Label labelPrototype, final LabelMapping labelMapping, final Charset charset, final int n, final boolean symmetrize) throws IOException {
@@ -374,12 +379,14 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is         an input stream containing a scattered list of arcs.
-	 * @param function   an explicitly provided function from string representing nodes to node numbers, or <code>null</code> for the standard behaviour.
-	 * @param charset    a character set that will be used to read the identifiers passed to <code>function</code>, or <code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
-	 * @param n          the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param is an input stream containing a scattered list of arcs.
+	 * @param function an explicitly provided function from string representing nodes to node numbers, or
+	 * 		<code>null</code> for the standard behaviour.
+	 * @param charset a character set that will be used to read the identifiers passed to <code>function</code>, or
+	 * 		<code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
+	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
 	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops    the new graph will have no loops.
+	 * @param noLoops the new graph will have no loops.
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Label labelPrototype, final LabelMapping labelMapping, final Charset charset, final int n, final boolean symmetrize, final boolean noLoops) throws IOException {
 		this(is, function, labelPrototype, labelMapping, charset, n, symmetrize, noLoops, DEFAULT_BATCH_SIZE);
@@ -388,13 +395,16 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is         an input stream containing a scattered list of arcs.
-	 * @param function   an explicitly provided function from string representing nodes to node numbers, or <code>null</code> for the standard behaviour.
-	 * @param charset    a character set that will be used to read the identifiers passed to <code>function</code>, or <code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
-	 * @param n          the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param is an input stream containing a scattered list of arcs.
+	 * @param function an explicitly provided function from string representing nodes to node numbers, or
+	 * 		<code>null</code> for the standard behaviour.
+	 * @param charset a character set that will be used to read the identifiers passed to <code>function</code>, or
+	 * 		<code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
+	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
 	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops    the new graph will have no loops.
-	 * @param batchSize  the number of integers in a batch; two arrays of integers of this size will be allocated by this method.
+	 * @param noLoops the new graph will have no loops.
+	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by
+	 * 		this method.
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Label labelPrototype, final LabelMapping labelMapping, final Charset charset, final int n, final boolean symmetrize, final boolean noLoops, final int batchSize) throws IOException {
 		this(is, function, labelPrototype, labelMapping, charset, n, symmetrize, noLoops, batchSize, null);
@@ -403,19 +413,22 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is         an input stream containing a scattered list of arcs.
-	 * @param function   an explicitly provided function from string representing nodes to node numbers, or <code>null</code> for the standard behaviour.
-	 * @param charset    a character set that will be used to read the identifiers passed to <code>function</code>, or <code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
-	 * @param n          the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param is an input stream containing a scattered list of arcs.
+	 * @param function an explicitly provided function from string representing nodes to node numbers, or
+	 * 		<code>null</code> for the standard behaviour.
+	 * @param charset a character set that will be used to read the identifiers passed to <code>function</code>, or
+	 * 		<code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
+	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
 	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops    the new graph will have no loops.
-	 * @param batchSize  the number of integers in a batch; two arrays of integers of this size will be allocated by this method.
-	 * @param tempDir    a temporary directory for the batches, or <code>null</code> for {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
+	 * @param noLoops the new graph will have no loops.
+	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by
+	 * 		this method.
+	 * @param tempDir a temporary directory for the batches, or <code>null</code> for
+	 *        {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Label labelPrototype, final LabelMapping labelMapping, final Charset charset, final int n, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir) throws IOException {
 		this(is, function, labelPrototype, labelMapping, charset, n, symmetrize, noLoops, batchSize, tempDir, null);
 	}
-
 
 	// TODO: Move somewhere else
 	// Given a label prototype and a value set the value inside the label without creating a new one
@@ -427,18 +440,23 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is         an input stream containing a scattered list of arcs.
-	 * @param function   an explicitly provided function from string representing nodes to node numbers, or <code>null</code> for the standard behaviour.
-	 * @param charset    a character set that will be used to read the identifiers passed to <code>function</code>, or <code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
-	 * @param n          the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param is an input stream containing a scattered list of arcs.
+	 * @param function an explicitly provided function from string representing nodes to node numbers, or
+	 * 		<code>null</code> for the standard behaviour.
+	 * @param charset a character set that will be used to read the identifiers passed to <code>function</code>, or
+	 * 		<code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
+	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
 	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops    the new graph will have no loops.
-	 * @param batchSize  the number of integers in a batch; two arrays of integers of this size will be allocated by this method.
-	 * @param tempDir    a temporary directory for the batches, or <code>null</code> for {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
-	 * @param pl         a progress logger, or <code>null</code>.
+	 * @param noLoops the new graph will have no loops.
+	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by
+	 * 		this method.
+	 * @param tempDir a temporary directory for the batches, or <code>null</code> for
+	 *        {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
+	 * @param pl a progress logger, or <code>null</code>.
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Label labelPrototype, final LabelMapping labelMapping, Charset charset, final int n, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
-		@SuppressWarnings("resource") final FastBufferedInputStream fbis = new FastBufferedInputStream(is);
+		@SuppressWarnings("resource")
+		final FastBufferedInputStream fbis = new FastBufferedInputStream(is);
 		ScatteredLabelledArcsASCIIGraph.Long2IntOpenHashBigMap map = new ScatteredLabelledArcsASCIIGraph.Long2IntOpenHashBigMap();
 
 		int numNodes = -1;
@@ -449,8 +467,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		final long[] labelStart = new long[batchSize];
 		FastByteArrayOutputStream fbos = new FastByteArrayOutputStream();
 		OutputBitStream obs = new OutputBitStream(fbos);
-		final ObjectArrayList<File> batches = new ObjectArrayList<>(),
-				labelBatches = new ObjectArrayList<>();
+		final ObjectArrayList<File> batches = new ObjectArrayList<>(), labelBatches = new ObjectArrayList<>();
 		final Label prototype = labelPrototype.copy();
 
 		if (pl != null) {
@@ -503,7 +520,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 				}
 
 				s = map.get(sl);
-				if (s == -1) map.put(sl, s = (int) map.size());
+				if (s == -1) map.put(sl, s = (int)map.size());
 
 				if (DEBUG) System.err.println("Parsed source at line " + line + ": " + sl + " => " + s);
 			} else {
@@ -515,10 +532,9 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 				}
 				if (sl < 0 || sl >= n)
 					throw new IllegalArgumentException("Source node number out of range for node " + ss + ": " + sl);
-				s = (int) sl;
+				s = (int)sl;
 				if (DEBUG) System.err.println("Parsed target at line " + line + ": " + ss + " => " + s);
 			}
-
 
 			// Skip whitespace between identifiers.
 			while (offset < lineLength && array[offset] >= 0 && array[offset] <= ' ') offset++;
@@ -545,7 +561,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 				}
 
 				t = map.get(tl);
-				if (t == -1) map.put(tl, t = (int) map.size());
+				if (t == -1) map.put(tl, t = (int)map.size());
 
 				if (DEBUG) System.err.println("Parsed target at line " + line + ": " + tl + " => " + t);
 			} else {
@@ -558,7 +574,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 
 				if (tl < 0 || tl >= n)
 					throw new IllegalArgumentException("Target node number out of range for node " + ts + ": " + tl);
-				t = (int) tl;
+				t = (int)tl;
 				if (DEBUG) System.err.println("Parsed target at line " + line + ": " + ts + " => " + t);
 			}
 
@@ -566,7 +582,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 			while (offset < lineLength && array[offset] >= 0 && array[offset] <= ' ') offset++;
 
 			if (offset == lineLength) {
-				LOGGER.error("Error at line " + line + ": no target");
+				LOGGER.error("Error at line " + line + ": no label");
 				continue;
 			}
 
@@ -577,16 +593,17 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 			final String ls = new String(array, start, offset - start, charset);
 
 			// Insert current value into the prototype label.
+			// TODO: introduce some kind of exception to discard the label
 			labelMapping.apply(prototype, ls);
 			if (DEBUG) System.err.println("Parsed label at line " + line + ": " + ls + " => " + prototype.get());
-
 
 			// Skip whitespace after label.
 			while (offset < lineLength && array[offset] >= 0 && array[offset] <= ' ') offset++;
 
 			if (offset < lineLength) LOGGER.warn("Trailing characters ignored at line " + line);
 
-			if (DEBUG) System.err.println("Parsed labelled arc at line " + line + ": " + s + " -> " + t + " (" + prototype.get() + ")");
+			if (DEBUG)
+				System.err.println("Parsed labelled arc at line " + line + ": " + s + " -> " + t + " (" + prototype.get() + ")");
 
 			if (s != t || !noLoops) {
 				source[j] = s;
@@ -633,15 +650,11 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 			logBatches(batches, pairs, pl);
 		}
 
-		numNodes = function == null ? (int) map.size() : function.size();
+		numNodes = function == null ? (int)map.size() : function.size();
 		source = null;
 		target = null;
 
 		map.compact();
-
-		// Non capisco esattamente come mai salvare le chiavi e i valori della mappa per poi ricaricarli?
-		// Riguarda il memory management? Chiedere!
-		// Per ora lascio così com'è, ma se è da fare farei un terzo file e usere BinIO.storeObject per salvare le label.
 
 		final File keyFile = File.createTempFile(ScatteredLabelledArcsASCIIGraph.class.getSimpleName(), "keys", tempDir);
 		keyFile.deleteOnExit();
@@ -669,13 +682,12 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		key = null;
 		value = null;
 
-		System.out.println(numNodes + " / " + batchSize + " = " + batches.size());
 		this.arcLabelledBatchGraph = new Transform.ArcLabelledBatchGraph(function == null ? numNodes : n, pairs, batches, labelBatches, prototype);
 	}
 
 	protected static void logBatches(final ObjectArrayList<File> batches, final long pairs, final ProgressLogger pl) {
 		long length = 0;
-		for(final File f : batches) length += f.length();
+		for (final File f : batches) length += f.length();
 		pl.logger().info("Created " + batches.size() + " batches using " + Util.format((double)Byte.SIZE * length / pairs) + " bits/arc.");
 	}
 
@@ -691,7 +703,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		long value = 0;
 		for (int i = 0; i < length; i++) {
 			final byte digit = array[offset + i];
-			if (digit < '0' || digit > '9') throw new NumberFormatException("Not a digit: " + (char) digit);
+			if (digit < '0' || digit > '9') throw new NumberFormatException("Not a digit: " + (char)digit);
 			value *= 10;
 			value += digit - '0';
 		}
@@ -702,16 +714,16 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param arcs       an iterator returning the arcs as two-element arrays.
+	 * @param arcs an iterator returning the arcs as two-element arrays.
 	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops    the new graph will have no loops.
-	 * @param batchSize  the number of integers in a batch; two arrays of integers of this size will be allocated by this method.
-	 * @param tempDir    a temporary directory for the batches, or <code>null</code> for {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
-	 * @param pl         a progress logger, or <code>null</code>.
+	 * @param noLoops the new graph will have no loops.
+	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by
+	 * 		this method.
+	 * @param tempDir a temporary directory for the batches, or <code>null</code> for
+	 *        {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
+	 * @param pl a progress logger, or <code>null</code>.
 	 */
-	public ScatteredLabelledArcsASCIIGraph(final Iterator<long[]> arcs, final Iterator<Label> arcLabels,
-	                                       final boolean symmetrize,
-	                                       final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
+	public ScatteredLabelledArcsASCIIGraph(final Iterator<long[]> arcs, final Iterator<Label> arcLabels, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
 		ScatteredLabelledArcsASCIIGraph.Long2IntOpenHashBigMap map = new ScatteredLabelledArcsASCIIGraph.Long2IntOpenHashBigMap();
 
 		int numNodes = -1;
@@ -722,8 +734,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		FastByteArrayOutputStream fbos = new FastByteArrayOutputStream();
 		OutputBitStream obs = new OutputBitStream(fbos);
 		Label prototype = null;
-		final ObjectArrayList<File> batches = new ObjectArrayList<>(),
-				labelBatches = new ObjectArrayList<>();
+		final ObjectArrayList<File> batches = new ObjectArrayList<>(), labelBatches = new ObjectArrayList<>();
 
 		if (pl != null) {
 			pl.itemsName = "labelled arcs";
@@ -736,10 +747,10 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 			final long[] arc = arcs.next();
 			final long sl = arc[0];
 			int s = map.get(sl);
-			if (s == -1) map.put(sl, s = (int) map.size());
+			if (s == -1) map.put(sl, s = (int)map.size());
 			final long tl = arc[1];
 			int t = map.get(tl);
-			if (t == -1) map.put(tl, t = (int) map.size());
+			if (t == -1) map.put(tl, t = (int)map.size());
 			Label l = arcLabels.next();
 			prototype = prototype == null ? l : prototype;
 
@@ -788,7 +799,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 			logBatches(batches, pairs, pl);
 		}
 
-		numNodes = (int) map.size();
+		numNodes = (int)map.size();
 		source = null;
 		target = null;
 
