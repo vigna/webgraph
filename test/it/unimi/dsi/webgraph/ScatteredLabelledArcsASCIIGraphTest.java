@@ -65,7 +65,7 @@ public class ScatteredLabelledArcsASCIIGraphTest extends WebGraphTestCase {
 	@Test
 	public void testConstructor() throws IOException {
 
-		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n0 2 b\n1 0 c\n1 2 d\n2 0 e\n2 1 f".getBytes("ASCII")), prototype, labelMapping);
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n0 2 b\n1 0 c\n1 2 d\n2 0 e\n2 1 f".getBytes("ASCII")), prototype, labelMapping, null);
 		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
 
@@ -97,39 +97,39 @@ public class ScatteredLabelledArcsASCIIGraphTest extends WebGraphTestCase {
 		assertEquals(new ArrayListMutableGraph(3, new int[][] {{0, 1}, {2, 1}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n0 2 b\n1 0 c\n1 2 d\n2 0 e\n2 1 f".getBytes("ASCII")), prototype, labelMapping, true, false, 1);
+		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n0 2 b\n1 0 c\n1 2 d\n2 0 e\n2 1 f".getBytes("ASCII")), prototype, labelMapping);
 		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n0 2 b\n1  0 c\n1 d   \t 2 e \n2 0    f\n2 1	g".getBytes("ASCII")), prototype, labelMapping, true, false, 1);
+		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n0 2 b\n1  0 c\n1 d   \t 2 e \n2 0    f\n2 1	g".getBytes("ASCII")), prototype, labelMapping, null, true, false);
 		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("2 0 a\n2 1 b".getBytes("ASCII")), prototype, labelMapping, true, false, 1);
+		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("2 0 a\n2 1 b".getBytes("ASCII")), prototype, labelMapping, null, true, false, 1);
 		assertEquals(Transform.symmetrize(new ArrayListMutableGraph(3, new int[][] {{0, 1}, {0, 2}}).immutableView()), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {2, 0, 1}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("1 2 a".getBytes("ASCII")), prototype, labelMapping, true, false, 1);
+		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("1 2 a".getBytes("ASCII")), prototype, labelMapping, null,true, false, 1);
 		assertEquals(Transform.symmetrize(new ArrayListMutableGraph(2, new int[][] {{0, 1}}).immutableView()), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {1, 2}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("2 1 a".getBytes("ASCII")), prototype, labelMapping, true, false, 1);
+		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("2 1 a".getBytes("ASCII")), prototype, labelMapping, null,true, false, 1);
 		assertEquals(Transform.symmetrize(new ArrayListMutableGraph(2, new int[][] {{0, 1}}).immutableView()), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {2, 1}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n2 1 b".getBytes("ASCII")), prototype, labelMapping, true, false, 1);
+		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n2 1 b".getBytes("ASCII")), prototype, labelMapping, null,true, false, 1);
 		assertEquals(Transform.symmetrize(new ArrayListMutableGraph(3, new int[][] {{0, 1}, {2, 1}}).immutableView()), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("\n0 1 a\n\n2 1 b".getBytes("ASCII")), prototype, labelMapping, true, false, 1);
+		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("\n0 1 a\n\n2 1 b".getBytes("ASCII")), prototype, labelMapping, null,true, false, 1);
 		assertEquals(Transform.symmetrize(new ArrayListMutableGraph(3, new int[][] {{0, 1}, {2, 1}}).immutableView()), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("\n0 1 a\n# comment\n2\n2 1 b\n2 X".getBytes("ASCII")), prototype, labelMapping, true, false, 1);
+		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("\n0 1 a\n# comment\n2\n2 1 b\n2 X".getBytes("ASCII")), prototype, labelMapping, null, true, false, 1);
 		assertEquals(Transform.symmetrize(new ArrayListMutableGraph(3, new int[][] {{0, 1}, {2, 1}}).immutableView()), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 0 a\n0 1 b\n0 2 c\n2 2 d\n1 0 e\n1 2 f\n2 0 g\n2 1 h".getBytes("ASCII")), prototype, labelMapping, true, true, 2);
+		g = new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 0 a\n0 1 b\n0 2 c\n2 2 d\n1 0 e\n1 2 f\n2 0 g\n2 1 h".getBytes("ASCII")), prototype, labelMapping, null, true, true, 2);
 		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
 
@@ -144,21 +144,21 @@ public class ScatteredLabelledArcsASCIIGraphTest extends WebGraphTestCase {
 		map.put("0", 0);
 		map.put("1", 1);
 		map.put("2", 2);
-		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n0 2 b\n1 0 c\n1 2 d\n2 0 e\n2 1 f".getBytes("ASCII")), map, prototype, labelMapping, null, 3));
+		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n0 2 b\n1 0 c\n1 2 d\n2 0 e\n2 1 f".getBytes("ASCII")), map, prototype, labelMapping, null,null, 3));
 
 		map.clear();
 		map.put("-1", 1);
 		map.put("15", 0);
 		map.put("2", 2);
 		final ImmutableGraph g = new ArrayListMutableGraph(3, new int[][] {{0, 2}, {1, 0}, {1, 2}, {2, 1}}).immutableView();
-		assertEquals(g, new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("-1 15 a\n15 2 b\n2 -1 c\nOOPS!\n-1 2 d".getBytes("ASCII")), map, prototype, labelMapping, null, 3));
-		assertEquals(g, new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("-1 15 a\n15 2 b\n2 -1 c\nOOPS!\n-1 2 d\n32 2 e\n2 32 f".getBytes("ASCII")), map, prototype, labelMapping, null, 3));
+		assertEquals(g, new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("-1 15 a\n15 2 b\n2 -1 c\nOOPS!\n-1 2 d".getBytes("ASCII")), map, prototype, labelMapping, null,null, 3));
+		assertEquals(g, new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("-1 15 a\n15 2 b\n2 -1 c\nOOPS!\n-1 2 d\n32 2 e\n2 32 f".getBytes("ASCII")), map, prototype, labelMapping, null, null, 3));
 
 		map.clear();
 		map.put("topo", 0);
 		map.put("cane", 1);
 		map.put("topocane", 2);
-		assertEquals(g, new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("topocane cane a\ncane topo b\ncane topocane c\ntopo topocane d\n".getBytes("ASCII")), map, prototype, labelMapping, null, 3));
+		assertEquals(g, new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("topocane cane a\ncane topo b\ncane topocane c\ntopo topocane d\n".getBytes("ASCII")), map, prototype, labelMapping, null,null, 3));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -168,7 +168,7 @@ public class ScatteredLabelledArcsASCIIGraphTest extends WebGraphTestCase {
 		map.put("0", 0);
 		map.put("1", 1);
 		map.put("2", 2);
-		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n0 2 b".getBytes("ASCII")), map, prototype, labelMapping, null, 2));
+		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n0 2 b".getBytes("ASCII")), map, prototype, labelMapping, null,null, 2));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -178,7 +178,7 @@ public class ScatteredLabelledArcsASCIIGraphTest extends WebGraphTestCase {
 		map.put("0", 0);
 		map.put("1", 1);
 		map.put("2", 2);
-		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n2 0 b".getBytes("ASCII")), map, prototype, labelMapping, null, 2));
+		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ScatteredLabelledArcsASCIIGraph(new FastByteArrayInputStream("0 1 a\n2 0 b".getBytes("ASCII")), map, prototype, labelMapping, null,null, 2));
 	}
 
 	@Test
