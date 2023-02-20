@@ -1369,6 +1369,7 @@ public class Transform {
 			@Override
 			public int outdegree() {
 				if (last == -1) throw new IllegalStateException();
+				sortSuccessors();
 				return outdegree;
 			}
 
@@ -1422,6 +1423,10 @@ public class Transform {
 					throw new RuntimeException(this + " " + e);
 				}
 
+				return last;
+			}
+
+			private void sortSuccessors() {
 				// Compute outdegree
 				if (outdegree == -1) {
 					final int numPairs = this.numPairs;
@@ -1444,13 +1449,18 @@ public class Transform {
 					}
 					else outdegree = 0;
 				}
+			}
 
-				return last;
+			@Override
+			public Label[] labelArray() {
+				sortSuccessors();
+				return super.labelArray();
 			}
 
 			@Override
 			public int[] successorArray() {
 				if (last == -1) throw new IllegalStateException();
+				sortSuccessors();
 				return successor;
 			}
 
@@ -1469,6 +1479,7 @@ public class Transform {
 			@Override
 			public LabelledArcIterator successors() {
 				if (last == -1) throw new IllegalStateException();
+				sortSuccessors();
 				return new LabelledArcIterator() {
 					int last = -1;
 
@@ -1584,24 +1595,27 @@ public class Transform {
 		return u;
 	}
 
-	/** Sorts the given source and target arrays w.r.t. the target and stores them in two temporary files.
-	 *  An additional positionable input bit stream is provided that contains labels, starting at given positions.
-	 *  Labels are also written onto the appropriate file.
+	/**
+	 * Sorts the given source and target arrays w.r.t. the target and stores them in two temporary files. An additional
+	 * positionable input bit stream is provided that contains labels, starting at given positions. Labels are also
+	 * written onto the appropriate file.
 	 *
 	 * @param n the index of the last element to be sorted (exclusive).
 	 * @param source the source array.
 	 * @param target the target array.
-	 * @param start the array containing the bit position (within the given input stream) where the label of the arc starts.
+	 * @param start the array containing the bit position (within the given input stream) where the label of the arc
+	 * 		starts.
 	 * @param labelBitStream the positionable bit stream containing the labels.
 	 * @param tempDir a temporary directory where to store the sorted arrays.
 	 * @param batches a list of files to which the batch file will be added.
 	 * @param labelBatches a list of files to which the label batch file will be added.
+	 * @param labelMergeStrategy
 	 * @return the number of pairs in the batch (might be less than <code>n</code> because duplicates are eliminated).
 	 */
 
 	public static int processTransposeBatch(final int n, final int[] source, final int[] target, final long[] start,
 	                                        final InputBitStream labelBitStream, final File tempDir, final List<File> batches, final List<File> labelBatches,
-	                                        final Label prototype) throws IOException {
+	                                        final Label prototype, final LabelMergeStrategy labelMergeStrategy) throws IOException {
 		it.unimi.dsi.fastutil.Arrays.parallelQuickSort(0, n, (x,y) -> {
 					final int t = Integer.compare(source[x], source[y]);
 					if (t != 0) return t;
@@ -1629,6 +1643,11 @@ public class Transform {
 		labelBatches.add(labelFile);
 		final OutputBitStream labelObs = new OutputBitStream(labelFile);
 
+		// Used to handle duplicate arcs with different labels
+		Label otherPrototype = prototype.copy();
+		// Position in labelObs of the last non-duplicate label written
+		long lastLabel = 0;
+
 		int u = 0;
 
 		if (n != 0) {
@@ -1646,6 +1665,7 @@ public class Transform {
 			prototype.toBitStream(labelObs, target[0]);
 
 			for(int i = 1; i < n; i++) {
+				System.out.println("lastLabel=" + lastLabel);
 				if (source[i] != prevSource) {
 					batch.writeDelta(source[i] - prevSource);
 					batch.writeDelta(target[i]);
@@ -1653,6 +1673,7 @@ public class Transform {
 
 					labelBitStream.position(start[i]);
 					prototype.fromBitStream(labelBitStream, source[i]);
+					lastLabel = labelObs.writtenBits();
 					prototype.toBitStream(labelObs, target[i]);
 				}
 				else if (target[i] != target[i - 1]) {
@@ -1662,8 +1683,37 @@ public class Transform {
 
 					labelBitStream.position(start[i]);
 					prototype.fromBitStream(labelBitStream, source[i]);
+					lastLabel = labelObs.writtenBits();
 					prototype.toBitStream(labelObs, target[i]);
 				}
+
+				/* WIP
+				else if (labelMergeStrategy != null) {
+					System.out.println("DUPLICATE");
+					/* Duplicate arcs! Go back to the last written label, compute the merge and overwrite
+
+					// the (i-1)-th and i-th arc have different labels
+					// Retrieve the i-th label.
+					labelBitStream.position(start[i]);
+					prototype.fromBitStream(labelBitStream, source[i]);
+
+					// Retrieve the (i-1)-th label
+					labelBitStream.position(lastLabel);
+					// I should retrieve the label written in labelObs at the lastLabel position,
+					// but how can I read from an output stream?
+					otherPrototype.fromBitStream(labelObs, source[i - 1]);
+
+					System.out.println(otherPrototype);
+					System.out.println(prototype);
+
+					Label merged = labelMergeStrategy.merge(otherPrototype, prototype);
+
+					// overwrite
+					labelObs.position(lastLabel);
+					merged.toBitStream(labelObs, target[i - 1]);
+				}
+
+				*/
 			}
 		}
 
@@ -1982,7 +2032,7 @@ public class Transform {
 
 				if (j == batchSize) {
 					obs.flush();
-					processTransposeBatch(batchSize, source, target, start, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype);
+					processTransposeBatch(batchSize, source, target, start, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype, null);
 					fbos = new FastByteArrayOutputStream();
 					obs = new OutputBitStream(fbos); //ALERT here we should re-use
 					j = 0;
@@ -1995,7 +2045,7 @@ public class Transform {
 
 		if (j != 0) {
 			obs.flush();
-			processTransposeBatch(j, source, target, start, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype);
+			processTransposeBatch(j, source, target, start, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype, null);
 		}
 
 		if (pl != null) {
