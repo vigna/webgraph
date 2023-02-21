@@ -72,10 +72,6 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	 * The list of identifiers in order of appearance.
 	 */
 	public long[] ids;
-	/**
-	 * The strategy used to merge labels when two identical arcs have different labels (if null discard the second label).
-	 */
-	private LabelMergeStrategy labelMergeStrategy = null;
 
 	/**
 	 * Creates a scattered-arcs ASCII graph.
@@ -526,8 +522,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		key = null;
 		value = null;
 
-		this.arcLabelledBatchGraph = new Transform.ArcLabelledBatchGraph(function == null ? numNodes : n, pairs, batches, labelBatches, prototype);
-		this.labelMergeStrategy = labelMergeStrategy;
+		this.arcLabelledBatchGraph = new Transform.ArcLabelledBatchGraph(function == null ? numNodes : n, pairs, batches, labelBatches, prototype, labelMergeStrategy);
 	}
 
 	/**
@@ -543,7 +538,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	 *        {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
 	 * @param pl a progress logger, or <code>null</code>.
 	 */
-	public ScatteredLabelledArcsASCIIGraph(final Iterator<long[]> arcs, final Iterator<Label> arcLabels, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
+	public ScatteredLabelledArcsASCIIGraph(final Iterator<long[]> arcs, final Iterator<Label> arcLabels, LabelMergeStrategy labelMergeStrategy, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
 		ScatteredLabelledArcsASCIIGraph.Long2IntOpenHashBigMap map = new ScatteredLabelledArcsASCIIGraph.Long2IntOpenHashBigMap();
 
 		int numNodes = -1;
@@ -658,7 +653,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		key = null;
 		value = null;
 
-		this.arcLabelledBatchGraph = new Transform.ArcLabelledBatchGraph(numNodes, pairs, batches, labelBatches, prototype);
+		this.arcLabelledBatchGraph = new Transform.ArcLabelledBatchGraph(numNodes, pairs, batches, labelBatches, prototype, labelMergeStrategy);
 	}
 
 	protected static void logBatches(final ObjectArrayList<File> batches, final long pairs, final ProgressLogger pl) {
