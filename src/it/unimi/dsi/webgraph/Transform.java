@@ -1277,13 +1277,15 @@ public class Transform {
 		private final ObjectArrayList<File> batches;
 		private final ObjectArrayList<File> labelBatches;
 		private final Label prototype;
+		private final LabelMergeStrategy labelMergeStrategy;
 
-		public ArcLabelledBatchGraph(int n, long numArcs, ObjectArrayList<File> batches, ObjectArrayList<File> labelBatches, Label prototype) {
+		public ArcLabelledBatchGraph(int n, long numArcs, ObjectArrayList<File> batches, ObjectArrayList<File> labelBatches, Label prototype, final LabelMergeStrategy labelMergeStrategy) {
 			this.n = n;
 			this.numArcs = numArcs;
 			this.batches = batches;
 			this.labelBatches = labelBatches;
 			this.prototype = prototype;
+			this.labelMergeStrategy = labelMergeStrategy;
 		}
 
 		@Override
@@ -1444,7 +1446,13 @@ public class Transform {
 					if (numPairs != 0) {
 						// Avoid returning the duplicate arcs
 						int p = 0;
-						for (int j = 1; j < numPairs; j++) if (successor[p] != successor[j]) successor[++p] = successor[j];
+						for (int j = 1; j < numPairs; j++) {
+							if (successor[p] != successor[j]) {
+								successor[++p] = successor[j];
+							} else if (labelMergeStrategy != null) {
+								label[p] = labelMergeStrategy.merge(label[p], label[j]);
+							}
+						}
 						outdegree = p + 1;
 					}
 					else outdegree = 0;
@@ -1462,18 +1470,6 @@ public class Transform {
 				if (last == -1) throw new IllegalStateException();
 				sortSuccessors();
 				return successor;
-			}
-
-			@SuppressWarnings("deprecation")
-			@Override
-			protected void finalize() throws Throwable {
-				try {
-					for(final InputBitStream ibs: batchIbs) if (ibs != null) ibs.close();
-					for(final InputBitStream ibs: labelInputBitStream) if (ibs != null) ibs.close();
-				}
-				finally {
-					super.finalize();
-				}
 			}
 
 			@Override
@@ -1503,6 +1499,17 @@ public class Transform {
 				};
 			}
 
+			@SuppressWarnings("deprecation")
+			@Override
+			protected void finalize() throws Throwable {
+				try {
+					for(final InputBitStream ibs: batchIbs) if (ibs != null) ibs.close();
+					for(final InputBitStream ibs: labelInputBitStream) if (ibs != null) ibs.close();
+				}
+				finally {
+					super.finalize();
+				}
+			}
 
 			@Override
 			public ArcLabelledNodeIterator copy(final int upperBound) {
@@ -1516,7 +1523,6 @@ public class Transform {
 				}
 			}
 		}
-
 
 		@Override
 		public ArcLabelledNodeIterator nodeIterator() {
@@ -2039,7 +2045,8 @@ public class Transform {
 		final long numArcs = m;
 
 		// Now we return an immutable graph whose nodeIterator() merges the batches on the fly.
-		return new ArcLabelledBatchGraph(n, numArcs, batches, labelBatches, prototype);
+		// We don't need a merge strategy because a transposition never introduces duplicates
+		return new ArcLabelledBatchGraph(n, numArcs, batches, labelBatches, prototype, null);
 	}
 
 	/** Returns an immutable graph obtained by reversing all arcs in <code>g</code>.
