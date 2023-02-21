@@ -1615,7 +1615,7 @@ public class Transform {
 
 	public static int processTransposeBatch(final int n, final int[] source, final int[] target, final long[] start,
 	                                        final InputBitStream labelBitStream, final File tempDir, final List<File> batches, final List<File> labelBatches,
-	                                        final Label prototype, final LabelMergeStrategy labelMergeStrategy) throws IOException {
+	                                        Label prototype, final LabelMergeStrategy labelMergeStrategy) throws IOException {
 		it.unimi.dsi.fastutil.Arrays.parallelQuickSort(0, n, (x,y) -> {
 					final int t = Integer.compare(source[x], source[y]);
 					if (t != 0) return t;
@@ -1645,6 +1645,8 @@ public class Transform {
 
 		// Used to handle duplicate arcs with different labels
 		Label otherPrototype = prototype.copy();
+		// Used to accumulate the merged labels
+		Label mergedPrototype = prototype.copy();
 		// Position in labelObs of the last non-duplicate label written
 		long lastLabel = 0;
 
@@ -1665,7 +1667,6 @@ public class Transform {
 			prototype.toBitStream(labelObs, target[0]);
 
 			for(int i = 1; i < n; i++) {
-				System.out.println("lastLabel=" + lastLabel);
 				if (source[i] != prevSource) {
 					batch.writeDelta(source[i] - prevSource);
 					batch.writeDelta(target[i]);
@@ -1685,35 +1686,17 @@ public class Transform {
 					prototype.fromBitStream(labelBitStream, source[i]);
 					lastLabel = labelObs.writtenBits();
 					prototype.toBitStream(labelObs, target[i]);
-				}
-
-				/* WIP
-				else if (labelMergeStrategy != null) {
-					System.out.println("DUPLICATE");
-					/* Duplicate arcs! Go back to the last written label, compute the merge and overwrite
-
-					// the (i-1)-th and i-th arc have different labels
-					// Retrieve the i-th label.
+				} else if (labelMergeStrategy != null) {
+					/* Duplicate arcs! Go back to the last written label, compute the merge and overwrite */
+					// TODO: notify the user to avoid generating a new label when calling the label merge strategy!
 					labelBitStream.position(start[i]);
-					prototype.fromBitStream(labelBitStream, source[i]);
-
-					// Retrieve the (i-1)-th label
-					labelBitStream.position(lastLabel);
-					// I should retrieve the label written in labelObs at the lastLabel position,
-					// but how can I read from an output stream?
-					otherPrototype.fromBitStream(labelObs, source[i - 1]);
-
-					System.out.println(otherPrototype);
-					System.out.println(prototype);
-
-					Label merged = labelMergeStrategy.merge(otherPrototype, prototype);
+					otherPrototype.fromBitStream(labelBitStream, source[i]);
+					prototype = labelMergeStrategy.merge(otherPrototype, prototype);
 
 					// overwrite
 					labelObs.position(lastLabel);
-					merged.toBitStream(labelObs, target[i - 1]);
+					prototype.toBitStream(labelObs, target[i - 1]);
 				}
-
-				*/
 			}
 		}
 
