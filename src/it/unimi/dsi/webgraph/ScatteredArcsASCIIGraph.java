@@ -191,12 +191,13 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 		}
 
 		/**
-		 * Creates a new hash big set.
+		 * Creates a new hash big map.
 		 *
-		 * <p>The actual table size will be the least power of two greater than
+		 * <p>
+		 * The actual table size will be the least power of two greater than
 		 * <code>expected</code>/<code>f</code>.
 		 *
-		 * @param expected the expected number of elements in the set.
+		 * @param expected the expected number of elements in the map.
 		 * @param f the load factor.
 		 */
 		public Long2IntOpenHashBigMap(final long expected, final float f) {
@@ -306,7 +307,17 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 			maxFill = maxFill(n, f);
 		}
 
-		public void compact() {
+		/**
+		 * Assuming that the map is a minimal perfect hash, returns the list of keys in value order.
+		 *
+		 * <p>
+		 * The map is not usable after this call.
+		 *
+		 * @param tempDir a temporary directory for storing keys and values.
+		 * @return the list of keys in value order.
+		 */
+		public long[] getIds(final File tempDir) throws IOException {
+			// Here we assume that the map is a minimal perfect hash
 			int base = 0, displ = 0, b = 0, d = 0;
 			for(long i = size; i-- != 0;) {
 				while (! used[base][displ]) base = (base + ((displ = (displ + 1) & segmentMask) == 0 ? 1 : 0)) & baseMask;
@@ -315,6 +326,28 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 				base = (base + ((displ = (displ + 1) & segmentMask) == 0 ? 1 : 0)) & baseMask;
 				b = (b + ((d = (d + 1) & segmentMask) == 0 ? 1 : 0)) & baseMask;
 			}
+
+			// The following weird code minimizes memory usage
+			final File keyFile = File.createTempFile(ScatteredArcsASCIIGraph.class.getSimpleName(), "keys", tempDir);
+			keyFile.deleteOnExit();
+			final File valueFile = File.createTempFile(ScatteredArcsASCIIGraph.class.getSimpleName(), "values", tempDir);
+			valueFile.deleteOnExit();
+
+			BinIO.storeLongs(key, 0, size(), keyFile);
+			BinIO.storeInts(value, 0, size(), valueFile);
+
+			used = null;
+			key = null;
+			value = null;
+
+			final long[][] key = BinIO.loadLongsBig(keyFile);
+			keyFile.delete();
+			final int[][] value = BinIO.loadIntsBig(valueFile);
+			valueFile.delete();
+
+			final long[] result = new long[(int)size];
+			for (int i = (int)size(); i-- != 0;) result[BigArrays.get(value, i)] = BigArrays.get(key, i);
+			return result;
 		}
 
 		public long size() {
@@ -465,7 +498,7 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 	public ScatteredArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, Charset charset, final int n, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
 		@SuppressWarnings("resource")
 		final FastBufferedInputStream fbis = new FastBufferedInputStream(is);
-		Long2IntOpenHashBigMap map = new Long2IntOpenHashBigMap();
+		final Long2IntOpenHashBigMap map = new Long2IntOpenHashBigMap();
 
 		int numNodes = -1;
 		if (charset == null) charset = Charset.forName("ISO-8859-1");
@@ -624,34 +657,7 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 		source = null;
 		target = null;
 
-		map.compact();
-
-		final File keyFile = File.createTempFile(ScatteredArcsASCIIGraph.class.getSimpleName(), "keys", tempDir);
-		keyFile.deleteOnExit();
-		final File valueFile = File.createTempFile(ScatteredArcsASCIIGraph.class.getSimpleName(), "values", tempDir);
-		valueFile.deleteOnExit();
-
-		BinIO.storeLongs(map.key, 0, map.size(), keyFile);
-		BinIO.storeInts(map.value, 0, map.size(), valueFile);
-
-		map = null;
-
-		long[][] key = BinIO.loadLongsBig(keyFile);
-		keyFile.delete();
-		int[][] value = BinIO.loadIntsBig(valueFile);
-		valueFile.delete();
-
-		if (function == null) {
-			ids = new long[numNodes];
-
-			final long[] result = new long[numNodes];
-			for(int i = numNodes; i--!= 0;) result[BigArrays.get(value, i)] = BigArrays.get(key, i);
-			ids = result;
-		}
-
-		key = null;
-		value = null;
-
+		if (function == null) ids = map.getIds(tempDir);
 		batchGraph = new Transform.BatchGraph(function == null ? numNodes : n, pairs, batches);
 	}
 
@@ -685,7 +691,7 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 	 * @param pl a progress logger, or <code>null</code>.
 	 */
 	public ScatteredArcsASCIIGraph(final Iterator<long[]> arcs, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
-		Long2IntOpenHashBigMap map = new Long2IntOpenHashBigMap();
+		final Long2IntOpenHashBigMap map = new Long2IntOpenHashBigMap();
 
 		int numNodes = -1;
 
@@ -742,32 +748,7 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 		source = null;
 		target = null;
 
-		map.compact();
-
-		final File keyFile = File.createTempFile(ScatteredArcsASCIIGraph.class.getSimpleName(), "keys", tempDir);
-		keyFile.deleteOnExit();
-		final File valueFile = File.createTempFile(ScatteredArcsASCIIGraph.class.getSimpleName(), "values", tempDir);
-		valueFile.deleteOnExit();
-
-		BinIO.storeLongs(map.key, 0, map.size(), keyFile);
-		BinIO.storeInts(map.value, 0, map.size(), valueFile);
-
-		map = null;
-
-		long[][] key = BinIO.loadLongsBig(keyFile);
-		keyFile.delete();
-		int[][] value = BinIO.loadIntsBig(valueFile);
-		valueFile.delete();
-
-		ids = new long[numNodes];
-
-		final long[] result = new long[numNodes];
-		for(int i = numNodes; i--!= 0;) result[BigArrays.get(value, i)] = BigArrays.get(key, i);
-		ids = result;
-
-		key = null;
-		value = null;
-
+		ids = map.getIds(tempDir);
 		batchGraph = new Transform.BatchGraph(numNodes, pairs, batches);
 	}
 
