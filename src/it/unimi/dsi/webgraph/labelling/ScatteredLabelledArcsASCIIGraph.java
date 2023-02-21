@@ -433,7 +433,6 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 			final String ls = new String(array, start, offset - start, charset);
 
 			// Insert current value into the prototype label.
-			// TODO: introduce some kind of exception to discard the label
 			labelMapping.apply(prototype, ls);
 			if (DEBUG) System.err.println("Parsed label at line " + line + ": " + ls + " => " + prototype.get());
 
