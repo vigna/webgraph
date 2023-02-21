@@ -1650,9 +1650,7 @@ public class Transform {
 		final OutputBitStream labelObs = new OutputBitStream(labelFile);
 
 		// Used to handle duplicate arcs with different labels
-		Label otherPrototype = prototype.copy();
-		// Used to accumulate the merged labels
-		Label mergedPrototype = prototype.copy();
+		final Label otherPrototype = prototype.copy();
 		// Position in labelObs of the last non-duplicate label written
 		long lastLabel = 0;
 
@@ -1680,7 +1678,10 @@ public class Transform {
 
 					labelBitStream.position(start[i]);
 					prototype.fromBitStream(labelBitStream, source[i]);
+
 					lastLabel = labelObs.writtenBits();
+					lastLabel = ((lastLabel >> 3) + 1) << 3;
+
 					prototype.toBitStream(labelObs, target[i]);
 				}
 				else if (target[i] != target[i - 1]) {
@@ -1690,9 +1691,13 @@ public class Transform {
 
 					labelBitStream.position(start[i]);
 					prototype.fromBitStream(labelBitStream, source[i]);
+
 					lastLabel = labelObs.writtenBits();
+					lastLabel = ((lastLabel >> 3) + 1) << 3;
+
 					prototype.toBitStream(labelObs, target[i]);
-				} else if (labelMergeStrategy != null) {
+				}
+				else if (labelMergeStrategy != null) {
 					/* Duplicate arcs! Go back to the last written label, compute the merge and overwrite */
 					// TODO: notify the user to avoid generating a new label when calling the label merge strategy!
 					labelBitStream.position(start[i]);
@@ -1700,6 +1705,14 @@ public class Transform {
 					prototype = labelMergeStrategy.merge(otherPrototype, prototype);
 
 					// overwrite
+					labelObs.position(lastLabel);
+					prototype.toBitStream(labelObs, target[i - 1]);
+				}
+				else {
+					/* If labelMergeStrategy is null simply keep the last label for this arc */
+					labelBitStream.position(start[i]);
+					prototype.fromBitStream(labelBitStream, source[i]);
+
 					labelObs.position(lastLabel);
 					prototype.toBitStream(labelObs, target[i - 1]);
 				}
