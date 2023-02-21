@@ -26,7 +26,9 @@ import it.unimi.dsi.fastutil.ints.IntBigArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
+import it.unimi.dsi.fastutil.longs.Long2IntFunction;
 import it.unimi.dsi.fastutil.longs.LongBigArrays;
+import it.unimi.dsi.fastutil.objects.Object2IntFunction;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.io.InputBitStream;
@@ -537,7 +539,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	 *        {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
 	 * @param pl a progress logger, or <code>null</code>.
 	 */
-	public ScatteredLabelledArcsASCIIGraph(final Iterator<long[]> arcs, final Iterator<Label> arcLabels, LabelMergeStrategy labelMergeStrategy, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
+	public ScatteredLabelledArcsASCIIGraph(final Iterator<long[]> arcs, final Long2IntFunction function, final Iterator<Label> arcLabels, LabelMergeStrategy labelMergeStrategy, final int n, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
 		ScatteredLabelledArcsASCIIGraph.Long2IntOpenHashBigMap map = new ScatteredLabelledArcsASCIIGraph.Long2IntOpenHashBigMap();
 
 		int numNodes = -1;
@@ -559,12 +561,26 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		long pairs = 0; // Number of pairs
 		while (arcs.hasNext()) {
 			final long[] arc = arcs.next();
+
 			final long sl = arc[0];
-			int s = map.get(sl);
-			if (s == -1) map.put(sl, s = (int)map.size());
+			int s;
+
+			if (function == null) {
+				 s = map.get(sl);
+				if (s == -1) map.put(sl, s = (int) map.size());
+			} else {
+				s = function.get(sl);
+			}
+
 			final long tl = arc[1];
-			int t = map.get(tl);
-			if (t == -1) map.put(tl, t = (int)map.size());
+			int t;
+
+			if (function == null) {
+				t = map.get(tl);
+				if (t == -1) map.put(tl, t = (int)map.size());
+			} else {
+				t = function.get(tl);
+			}
 
 			if (!arcLabels.hasNext()) {
 				throw new IllegalArgumentException("Not enough labels");
@@ -622,7 +638,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 			logBatches(batches, pairs, pl);
 		}
 
-		numNodes = (int)map.size();
+		numNodes = function == null ? (int)map.size() : function.size();
 		source = null;
 		target = null;
 
@@ -643,16 +659,18 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		int[][] value = BinIO.loadIntsBig(valueFile);
 		valueFile.delete();
 
-		this.ids = new long[numNodes];
+		if (function == null) {
+			ids = new long[numNodes];
 
-		final long[] result = new long[numNodes];
-		for (int i = numNodes; i-- != 0; ) result[BigArrays.get(value, i)] = BigArrays.get(key, i);
-		this.ids = result;
+			final long[] result = new long[numNodes];
+			for (int i = numNodes; i-- != 0; ) result[BigArrays.get(value, i)] = BigArrays.get(key, i);
+			this.ids = result;
+		}
 
 		key = null;
 		value = null;
 
-		this.arcLabelledBatchGraph = new Transform.ArcLabelledBatchGraph(numNodes, pairs, batches, labelBatches, prototype, labelMergeStrategy);
+		this.arcLabelledBatchGraph = new Transform.ArcLabelledBatchGraph(function == null ? numNodes : n, pairs, batches, labelBatches, prototype, labelMergeStrategy);
 	}
 
 	protected static void logBatches(final ObjectArrayList<File> batches, final long pairs, final ProgressLogger pl) {

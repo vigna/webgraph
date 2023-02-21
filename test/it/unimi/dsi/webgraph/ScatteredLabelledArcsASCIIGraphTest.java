@@ -18,6 +18,8 @@
 package it.unimi.dsi.webgraph;
 
 import it.unimi.dsi.fastutil.io.FastByteArrayInputStream;
+import it.unimi.dsi.fastutil.longs.Long2IntFunction;
+import it.unimi.dsi.fastutil.objects.Object2IntFunction;
 import it.unimi.dsi.fastutil.objects.Object2LongArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.webgraph.labelling.*;
@@ -35,6 +37,7 @@ import static org.junit.Assert.assertEquals;
 
 public class ScatteredLabelledArcsASCIIGraphTest extends WebGraphTestCase {
 	private static final Label gammaPrototype = new GammaCodedIntLabel("FOO");
+	private static final Long2IntFunction identity = Math::toIntExact;
 	private static final LabelMapping hashcodeMapping = (label, st) -> ((GammaCodedIntLabel)label).value = st.hashCode();
 	private static final LabelMapping integerMapping = (label, st) -> ((GammaCodedIntLabel)label).value = Integer.parseInt(st);
 
@@ -205,81 +208,84 @@ public class ScatteredLabelledArcsASCIIGraphTest extends WebGraphTestCase {
 
 	@Test
 	public void testConstructorWithArray() throws IOException {
-		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n0 2\n1 0\n1 2\n2 0\n2 1"), toLabelIterator("a b c d e f", gammaPrototype, hashcodeMapping), null, false, false, 100, null, null);
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n0 2\n1 0\n1 2\n2 0\n2 1"), null, toLabelIterator("a b c d e f", gammaPrototype, hashcodeMapping), null, -1, false, false, 100, null, null);
 		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("-1 15\n15 2\n2 -1\n-1 2"), toLabelIterator("a b c d", gammaPrototype, hashcodeMapping), null, false, false, 100, null, null);
+		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("-1 15\n15 2\n2 -1\n-1 2"), null, toLabelIterator("a b c d", gammaPrototype, hashcodeMapping), null, -1, false, false, 100, null, null);
 		assertEquals(new ArrayListMutableGraph(3, new int[][] {{0, 1}, {0, 2}, {1, 2}, {2, 0}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {-1, 15, 2}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 0\n2 1"), toLabelIterator("a b", gammaPrototype, hashcodeMapping), null, false, false, 100, null, null);
+		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 0\n2 1"), null, toLabelIterator("a b", gammaPrototype, hashcodeMapping), null, -1, false, false, 100, null, null);
 		assertEquals(new ArrayListMutableGraph(3, new int[][] {{0, 1}, {0, 2}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {2, 0, 1}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("1 2"), toLabelIterator("a b", gammaPrototype, hashcodeMapping), null, false, false, 100, null, null);
+		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("1 2"), null, toLabelIterator("a b", gammaPrototype, hashcodeMapping), null, -1, false, false, 100, null, null);
 		assertEquals(new ArrayListMutableGraph(2, new int[][] {{0, 1}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {1, 2}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1"), toLabelIterator("a b", gammaPrototype, hashcodeMapping), null, false, false, 100, null, null);
+		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1"), null, toLabelIterator("a b", gammaPrototype, hashcodeMapping), null, -1, false, false, 100, null, null);
 		assertEquals(new ArrayListMutableGraph(2, new int[][] {{0, 1}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {2, 1}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n2 1"), toLabelIterator("a b", gammaPrototype, hashcodeMapping), null, false, false, 100, null, null);
+		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n2 1"), null, toLabelIterator("a b", gammaPrototype, hashcodeMapping), null, -1, false, false, 100, null, null);
 		assertEquals(new ArrayListMutableGraph(3, new int[][] {{0, 1}, {2, 1}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n0 2\n1 0\n1 2\n2 0\n2 1"), toLabelIterator("a b c d e f", gammaPrototype, hashcodeMapping), null, true, false, 1, null, null);
+		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n0 2\n1 0\n1 2\n2 0\n2 1"), null, toLabelIterator("a b c d e f", gammaPrototype, hashcodeMapping), null, -1, true, false, 1, null, null);
 		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 0\n2 1"), toLabelIterator("a b", gammaPrototype, hashcodeMapping), null, true, false, 1, null, null);
+		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 0\n2 1"), null, toLabelIterator("a b", gammaPrototype, hashcodeMapping), null, -1, true, false, 1, null, null);
 		assertEquals(Transform.symmetrize(new ArrayListMutableGraph(3, new int[][] {{0, 1}, {0, 2}}).immutableView()), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {2, 0, 1}, g.ids);
 
-		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 0\n0 1\n0 2\n2 2\n1 0\n1 2\n2 0\n2 1"), toLabelIterator("a b c d e f h g", gammaPrototype, hashcodeMapping), null, true, true, 2, null, null);
+		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 0\n0 1\n0 2\n2 2\n1 0\n1 2\n2 0\n2 1"), null, toLabelIterator("a b c d e f h g", gammaPrototype, hashcodeMapping), null, -1, true, true, 2, null, null);
 		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {0, 1, 2}, g.ids);
+
+		g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 0\n0 1\n0 2\n2 2\n1 0\n1 2\n2 0\n2 1"), identity, toLabelIterator("a b c d e f h g", gammaPrototype, hashcodeMapping), null, 3, true, true, 2, null, null);
+		assertEquals(ArrayListMutableGraph.newCompleteGraph(3, false).immutableView(), new ArrayListMutableGraph(g).immutableView());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testMissingLabel() throws IOException {
-		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1\n1 3"), toLabelIterator("a", gammaPrototype, hashcodeMapping), null, false, false, 1, null, null);
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1\n1 3"), null, toLabelIterator("a", gammaPrototype, hashcodeMapping), null, -1, false, false, 1, null, null);
 		assertEquals(new ArrayListMutableGraph(2, new int[][] {{0, 1}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {2, 1}, g.ids);
 	}
 
 	@Test
 	public void testTooManyLabels() throws IOException {
-		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1\n1 3"), toLabelIterator("a b c", gammaPrototype, hashcodeMapping), null, false, false, 1, null, null);
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1\n1 3"), null, toLabelIterator("a b c", gammaPrototype, hashcodeMapping), null, -1, false, false, 1, null, null);
 		assertEquals(new ArrayListMutableGraph(3, new int[][] {{0, 1}, {1, 2}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {2, 1, 3}, g.ids);
 	}
 
 	@Test
 	public void testSameArcSameLabel() throws IOException {
-		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1\n2 1"), toLabelIterator("a a", gammaPrototype, hashcodeMapping), null, false, false, 1, null, null);
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1\n2 1"), null, toLabelIterator("a a", gammaPrototype, hashcodeMapping), null, -1, false, false, 1, null, null);
 		assertEquals(new ArrayListMutableGraph(2, new int[][] {{0, 1}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {2, 1}, g.ids);
 	}
 
 	@Test
 	public void testSameArcDifferentLabel() throws IOException {
-		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1\n2 1"), toLabelIterator("a b", gammaPrototype, hashcodeMapping), null, false, false, 1, null, null);
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("2 1\n2 1"), null, toLabelIterator("a b", gammaPrototype, hashcodeMapping), null, -1, false, false, 1, null, null);
 		assertEquals(new ArrayListMutableGraph(2, new int[][] {{0, 1}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {2, 1}, g.ids);
 	}
 
 	@Test
 	public void testDifferentArcSameLabel() throws IOException {
-		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n2 3"), toLabelIterator("a a", gammaPrototype, hashcodeMapping), null, false, false, 1, null, null);
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n2 3"), null, toLabelIterator("a a", gammaPrototype, hashcodeMapping), null, -1, false, false, 1, null, null);
 		assertEquals(new ArrayListMutableGraph(4, new int[][] {{0, 1}, {2, 3}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
 		assertArrayEquals(new long[] {0, 1, 2, 3}, g.ids);
 	}
 
 	@Test
 	public void testLabelMergeStrategy() throws IOException {
-		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n2 3\n0 1"), toLabelIterator("5 6 9", gammaPrototype, integerMapping), new MergeIntegers(gammaPrototype), false, false, 1, null, null);
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n2 3\n0 1"), null, toLabelIterator("5 6 9", gammaPrototype, integerMapping), new MergeIntegers(gammaPrototype), -1, false, false, 1, null, null);
 		int[][] labelValues = getLabelValues(g);
 
 		assertEquals(new ArrayListMutableGraph(4, new int[][] {{0, 1}, {2, 3}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
@@ -288,7 +294,7 @@ public class ScatteredLabelledArcsASCIIGraphTest extends WebGraphTestCase {
 
 	@Test
 	public void testNoLabelMergeStrategyOnlyKeepTheLastLabel() throws IOException {
-		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n2 3\n0 1"), toLabelIterator("5 6 9", gammaPrototype, integerMapping), null, false, false, 10, null, null);
+		ScatteredLabelledArcsASCIIGraph g = new ScatteredLabelledArcsASCIIGraph(toArcsIterator("0 1\n2 3\n0 1"), null, toLabelIterator("5 6 9", gammaPrototype, integerMapping), null, -1, false, false, 10, null, null);
 		int[][] labelValues = getLabelValues(g);
 
 		assertEquals(new ArrayListMutableGraph(4, new int[][] {{0, 1}, {2, 3}}).immutableView(), new ArrayListMutableGraph(g).immutableView());
