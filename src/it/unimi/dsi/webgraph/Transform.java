@@ -1698,7 +1698,7 @@ public class Transform {
 					prototype.toBitStream(labelObs, target[i]);
 				}
 				else if (labelMergeStrategy != null) {
-					/* Duplicate arcs! Go back to the last written label, compute the merge and overwrite */
+					// Duplicate arcs! Go back to the last written label, compute the merge and overwrite
 					// TODO: notify the user to avoid generating a new label when calling the label merge strategy!
 					labelBitStream.position(start[i]);
 					otherPrototype.fromBitStream(labelBitStream, source[i]);
@@ -1709,7 +1709,7 @@ public class Transform {
 					prototype.toBitStream(labelObs, target[i - 1]);
 				}
 				else {
-					/* If labelMergeStrategy is null simply keep the last label for this arc */
+					// Duplicate arcs! If labelMergeStrategy is null simply keep the last seen label for this arc
 					labelBitStream.position(start[i]);
 					prototype.fromBitStream(labelBitStream, source[i]);
 
