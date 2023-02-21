@@ -637,14 +637,14 @@ public class EFGraph extends ImmutableGraph {
 		return EFGraph.loadMapped(basename, null);
 	}
 
-	/** An iterator returning the offsets. */
-	private final static class OffsetsLongIterator implements LongIterator {
+	/** An iterator returning offsets by reading &delta;-encoded gaps. */
+	public final static class OffsetsLongIterator implements LongIterator {
 		private final InputBitStream offsetIbs;
 		private final long n;
 		private long offset;
 		private long i;
 
-		private OffsetsLongIterator(final InputBitStream offsetIbs, final long n) {
+		public OffsetsLongIterator(final InputBitStream offsetIbs, final long n) {
 			this.offsetIbs = offsetIbs;
 			this.n = n;
 		}
