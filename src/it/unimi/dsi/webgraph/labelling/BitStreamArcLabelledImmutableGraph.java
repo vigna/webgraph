@@ -357,6 +357,22 @@ public class BitStreamArcLabelledImmutableGraph extends ArcLabelledImmutableGrap
 		}
 	}
 
+	/**
+	 * Returns an appropriate Elias&ndash;Fano {@link LongBigList} for the given number of nodes and
+	 * label file size.
+	 *
+	 * @param numNodes the number of nodes of the graph.
+	 * @param size the size of the label file in bytes.
+	 * @param labelOffsetsIbs the label offsets input stream.
+	 * @return an appropriate Elias&ndash;Fano {@link LongBigList} (either an
+	 *         {@link EliasFanoMonotoneLongBigList} or an {@link EliasFanoMonotoneBigLongBigList}).
+	 */
+	public static LongBigList fitEliasFano(final long numNodes, final long size, final InputBitStream labelOffsetsIbs) {
+		return EliasFanoMonotoneLongBigList.fits(numNodes + 1, size * Byte.SIZE + 1)
+				? new EliasFanoMonotoneLongBigList(numNodes + 1, size * Byte.SIZE + 1, new LabelOffsetsLongIterator(numNodes, labelOffsetsIbs))
+				: new EliasFanoMonotoneBigLongBigList(numNodes + 1, size * Byte.SIZE + 1, new LabelOffsetsLongIterator(numNodes, labelOffsetsIbs));
+	}
+
 	/** Loads a labelled graph using the given method.
 	 *
 	 * @param method a load method.
@@ -451,7 +467,7 @@ public class BitStreamArcLabelledImmutableGraph extends ArcLabelledImmutableGrap
 				}
 				if (offsets == null) {
 					final InputBitStream offsetStream = new InputBitStream(basename + LABEL_OFFSETS_EXTENSION);
-					offsets = (EliasFanoMonotoneLongBigList.fits(g.numNodes() + 1, size * Byte.SIZE + 1)) ? new EliasFanoMonotoneLongBigList(g.numNodes() + 1, size * Byte.SIZE + 1, new LabelOffsetsLongIterator(g.numNodes(), offsetStream)) : new EliasFanoMonotoneBigLongBigList(g.numNodes() + 1, size * Byte.SIZE + 1, new LabelOffsetsLongIterator(g.numNodes(), offsetStream));
+					offsets = fitEliasFano(g.numNodes(), size, offsetStream);
 					offsetStream.close();
 				}
 				if (pl != null) {
@@ -678,34 +694,6 @@ public class BitStreamArcLabelledImmutableGraph extends ArcLabelledImmutableGrap
 		properties.close();
 	}
 
-	/** An iterator returning &gamma;-encoded offsets. */
-	public final static class OffsetsLongIterator implements LongIterator {
-		private final InputBitStream offsetStream;
-		private final long n;
-		private long off;
-		private long i;
-
-		public OffsetsLongIterator(final long n, final InputBitStream offsetIbs) {
-			this.offsetStream = offsetIbs;
-			this.n = n;
-		}
-
-		@Override
-		public boolean hasNext() {
-			return i <= n;
-		}
-
-		@Override
-		public long nextLong() {
-			i++;
-			try {
-				return off = offsetStream.readLongGamma() + off;
-			} catch (final IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
-	}
-
 	/**
 	 * Reads an arc-labelled immutable graph and stores it as a
 	 * {@link BitStreamArcLabelledImmutableGraph}.
@@ -738,7 +726,7 @@ public class BitStreamArcLabelledImmutableGraph extends ArcLabelledImmutableGrap
 				final long size = fis.getChannel().size();
 				final ImmutableGraph g = ImmutableGraph.loadOffline(source, pl);
 				final InputBitStream offsetStream = new InputBitStream(source + LABEL_OFFSETS_EXTENSION);
-				final LongBigList offsets = (EliasFanoMonotoneLongBigList.fits(g.numNodes() + 1, size * Byte.SIZE + 1)) ? new EliasFanoMonotoneLongBigList(g.numNodes() + 1, size * Byte.SIZE + 1, new OffsetsLongIterator(g.numNodes(), offsetStream)) : new EliasFanoMonotoneBigLongBigList(g.numNodes() + 1, size * Byte.SIZE + 1, new OffsetsLongIterator(g.numNodes(), offsetStream));
+				final LongBigList offsets = fitEliasFano(g.numNodes(), size, offsetStream);
 				offsetStream.close();
 				fis.close();
 				BinIO.storeObject(offsets, g.basename() + LABEL_OFFSETS_BIG_LIST_EXTENSION);
