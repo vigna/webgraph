@@ -656,7 +656,7 @@ public class Transform {
 		if (! g.randomAccess()) throw new IllegalArgumentException("Graph mapping requires random access");
 
 		final int sourceNumNodes = g.numNodes();
-		if (map.length != sourceNumNodes) throw new IllegalArgumentException("The graph to be mapped has " + sourceNumNodes + " whereas the map contains " + map.length + " entries");
+		if (map.length != sourceNumNodes) throw new IllegalArgumentException("The graph to be mapped has " + sourceNumNodes + " nodes whereas the map contains " + map.length + " entries");
 
 		int max = -1;
 		if (pl != null) {

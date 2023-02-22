@@ -42,7 +42,6 @@ import com.martiansoftware.jsap.UnflaggedOption;
 
 import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.Hash;
-import it.unimi.dsi.fastutil.booleans.BooleanBigArrays;
 import it.unimi.dsi.fastutil.bytes.ByteArrays;
 import it.unimi.dsi.fastutil.ints.IntBigArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
@@ -145,53 +144,45 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 	/** The list of identifiers in order of appearance. */
 	public long[] ids;
 
-	private static final class Long2IntOpenHashBigMap implements java.io.Serializable, Cloneable, Hash {
-		public static final long serialVersionUID = 0L;
-
+	public static class ID2NodeMap implements Hash {
 		/** The big array of keys. */
-		public transient long[][] key;
+		protected long[][] key;
 
 		/** The big array of values. */
-		public transient int[][] value;
+		protected int[][] value;
 
-		/** The big array telling whether a position is used. */
-		protected transient boolean[][] used;
+		/** Whether the zero key is present (the value is stored in position {@link #n). */
+		protected boolean containsZeroKey;
 
 		/** The acceptable load factor. */
 		protected final float f;
 
 		/** The current table size (always a power of 2). */
-		protected transient long n;
+		protected long n;
 
 		/** Threshold after which we rehash. It must be the table size times {@link #f}. */
-		protected transient long maxFill;
+		protected long maxFill;
 
 		/** The mask for wrapping a position counter. */
-		protected transient long mask;
+		protected long mask;
 
 		/** The mask for wrapping a segment counter. */
-		protected transient int segmentMask;
+		protected int segmentMask;
 
 		/** The mask for wrapping a base counter. */
-		protected transient int baseMask;
+		protected int baseMask;
 
 		/** Number of entries in the set. */
-		protected long size;
+		protected int size;
 
-		/** Initialises the mask values. */
 		private void initMasks() {
 			mask = n - 1;
-			/*
-			 * Note that either we have more than one segment, and in this case all segments are
-			 * BigArrays.SEGMENT_SIZE long, or we have exactly one segment whose length is a power of
-			 * two.
-			 */
-			segmentMask = key[0].length - 1;
 			baseMask = key.length - 1;
+			segmentMask = baseMask == 0 ? (int)(n - 1) : BigArrays.SEGMENT_SIZE - 1;
 		}
 
 		/**
-		 * Creates a new hash big map.
+		 * Creates a new map based on a hash table.
 		 *
 		 * <p>
 		 * The actual table size will be the least power of two greater than
@@ -200,15 +191,14 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 		 * @param expected the expected number of elements in the map.
 		 * @param f the load factor.
 		 */
-		public Long2IntOpenHashBigMap(final long expected, final float f) {
+		public ID2NodeMap(final long expected, final float f) {
 			if (f <= 0 || f > 1) throw new IllegalArgumentException("Load factor must be greater than 0 and smaller than or equal to 1");
 			if (n < 0) throw new IllegalArgumentException("The expected number of elements must be nonnegative");
 			this.f = f;
 			n = bigArraySize(expected, f);
 			maxFill = maxFill(n, f);
-			key = LongBigArrays.newBigArray(n);
-			value = IntBigArrays.newBigArray(n);
-			used = BooleanBigArrays.newBigArray(n);
+			key = LongBigArrays.newBigArray(n + 1);
+			value = IntBigArrays.newBigArray(n + 1);
 			initMasks();
 		}
 
@@ -217,114 +207,108 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 		 * and {@link Hash#DEFAULT_LOAD_FACTOR} as load factor.
 		 */
 
-		public Long2IntOpenHashBigMap() {
+		public ID2NodeMap() {
 			this(DEFAULT_INITIAL_SIZE, DEFAULT_LOAD_FACTOR);
 		}
 
-		public int put(final long k, final int v) {
-			final long h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
+		/**
+		 * Returns the node associated with a given identifier, assigning a new one if necessary.
+		 *
+		 * @param id an identifier.
+		 * @return the associated node.
+		 */
+		public int getNode(final long id) {
+			if (id == 0) {
+				if (containsZeroKey) return BigArrays.get(value, n);
+				BigArrays.set(value, n, size);
+				containsZeroKey = true;
+			} else {
 
-			// The starting point.
-			int displ = (int)(h & segmentMask);
-			int base = (int)((h & mask) >>> BigArrays.SEGMENT_SHIFT);
+				final long h = it.unimi.dsi.fastutil.HashCommon.mix(id);
 
-			// There's always an unused entry.
-			while (used[base][displ]) {
-				if (k == key[base][displ]) {
-					final int oldValue = value[base][displ];
-					value[base][displ] = v;
-					return oldValue;
+				// The starting point.
+				int displ = (int)(h & segmentMask);
+				int base = (int)((h & mask) >>> BigArrays.SEGMENT_SHIFT);
+
+				// There's always an unused entry.
+				while (key[base][displ] != 0) {
+					if (id == key[base][displ]) return value[base][displ];
+					base = (base + ((displ = (displ + 1) & segmentMask) == 0 ? 1 : 0)) & baseMask;
 				}
-				base = (base + ((displ = (displ + 1) & segmentMask) == 0 ? 1 : 0)) & baseMask;
-			}
 
-			used[base][displ] = true;
-			key[base][displ] = k;
-			value[base][displ] = v;
+				key[base][displ] = id;
+				value[base][displ] = size;
+			}
 
 			if (++size >= maxFill) rehash(2 * n);
-			return -1;
-		}
-
-		public int get(final long k) {
-			final long h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
-
-			// The starting point.
-			int displ = (int)(h & segmentMask);
-			int base = (int)((h & mask) >>> BigArrays.SEGMENT_SHIFT);
-
-			// There's always an unused entry.
-			while (used[base][displ]) {
-				if (k == key[base][displ]) return value[base][displ];
-				base = (base + ((displ = (displ + 1) & segmentMask) == 0 ? 1 : 0)) & baseMask;
-			}
-
-			return -1;
+			return size - 1;
 		}
 
 		protected void rehash(final long newN) {
-			final boolean used[][] = this.used;
 			final long key[][] = this.key;
 			final int[][] value = this.value;
-			final boolean newUsed[][] = BooleanBigArrays.newBigArray(newN);
-			final long newKey[][] = LongBigArrays.newBigArray(newN);
-			final int newValue[][] = IntBigArrays.newBigArray(newN);
+			final long newKey[][] = LongBigArrays.newBigArray(newN + 1);
+			final int newValue[][] = IntBigArrays.newBigArray(newN + 1);
 			final long newMask = newN - 1;
-			final int newSegmentMask = newKey[0].length - 1;
 			final int newBaseMask = newKey.length - 1;
+			final int newSegmentMask = newBaseMask == 0 ? (int)(newN - 1) : BigArrays.SEGMENT_SIZE - 1;
+			final int realSize = containsZeroKey ? size - 1 : size;
 
 			int base = 0, displ = 0;
-			long h;
-			long k;
 
-			for (long i = size; i-- != 0;) {
-
-				while (!used[base][displ])
+			for (int i = realSize; i-- != 0;) {
+				while (key[base][displ] == 0)
 					base = (base + ((displ = (displ + 1) & segmentMask) == 0 ? 1 : 0));
 
-				k = key[base][displ];
-				h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
+				final long k = key[base][displ];
+				final long h = it.unimi.dsi.fastutil.HashCommon.mix(k);
 
 				// The starting point.
 				int d = (int)(h & newSegmentMask);
 				int b = (int)((h & newMask) >>> BigArrays.SEGMENT_SHIFT);
 
-				while (newUsed[b][d])
+				while (newKey[b][d] != 0)
 					b = (b + ((d = (d + 1) & newSegmentMask) == 0 ? 1 : 0)) & newBaseMask;
 
-				newUsed[b][d] = true;
 				newKey[b][d] = k;
 				newValue[b][d] = value[base][displ];
 
 				base = (base + ((displ = (displ + 1) & segmentMask) == 0 ? 1 : 0));
 			}
 
+			BigArrays.set(newValue, newN, BigArrays.get(value, n));
+
 			this.n = newN;
 			this.key = newKey;
 			this.value = newValue;
-			this.used = newUsed;
 			initMasks();
 			maxFill = maxFill(n, f);
 		}
 
 		/**
-		 * Assuming that the map is a minimal perfect hash, returns the list of keys in value order.
+		 * Returns the id list in order of appearance as an array.
 		 *
 		 * <p>
 		 * The map is not usable after this call.
 		 *
 		 * @param tempDir a temporary directory for storing keys and values.
-		 * @return the list of keys in value order.
+		 * @return the id list in order of appearance.
 		 */
 		public long[] getIds(final File tempDir) throws IOException {
 			// Here we assume that the map is a minimal perfect hash
+			final int realSize = containsZeroKey ? size - 1 : size;
 			int base = 0, displ = 0, b = 0, d = 0;
-			for(long i = size; i-- != 0;) {
-				while (! used[base][displ]) base = (base + ((displ = (displ + 1) & segmentMask) == 0 ? 1 : 0)) & baseMask;
+			for (int i = realSize; i-- != 0;) {
+				while (key[base][displ] == 0) base = (base + ((displ = (displ + 1) & segmentMask) == 0 ? 1 : 0)) & baseMask;
 				key[b][d] = key[base][displ];
 				value[b][d] = value[base][displ];
 				base = (base + ((displ = (displ + 1) & segmentMask) == 0 ? 1 : 0)) & baseMask;
 				b = (b + ((d = (d + 1) & segmentMask) == 0 ? 1 : 0)) & baseMask;
+			}
+
+			if (containsZeroKey) {
+				key[b][d] = 0;
+				value[b][d] = BigArrays.get(value, n);
 			}
 
 			// The following weird code minimizes memory usage
@@ -336,7 +320,6 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 			BinIO.storeLongs(key, 0, size(), keyFile);
 			BinIO.storeInts(value, 0, size(), valueFile);
 
-			used = null;
 			key = null;
 			value = null;
 
@@ -345,7 +328,7 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 			final int[][] value = BinIO.loadIntsBig(valueFile);
 			valueFile.delete();
 
-			final long[] result = new long[(int)size];
+			final long[] result = new long[size];
 			for (int i = (int)size(); i-- != 0;) result[BigArrays.get(value, i)] = BigArrays.get(key, i);
 			return result;
 		}
@@ -498,7 +481,7 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 	public ScatteredArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, Charset charset, final int n, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
 		@SuppressWarnings("resource")
 		final FastBufferedInputStream fbis = new FastBufferedInputStream(is);
-		final Long2IntOpenHashBigMap map = new Long2IntOpenHashBigMap();
+		final ID2NodeMap map = new ID2NodeMap();
 
 		int numNodes = -1;
 		if (charset == null) charset = Charset.forName("ISO-8859-1");
@@ -556,8 +539,7 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 					continue;
 				}
 
-				s = map.get(sl);
-				if (s == -1) map.put(sl, s = (int)map.size());
+				s = map.getNode(sl);
 
 				if (DEBUG) System.err.println("Parsed source at line " + line + ": " + sl + " => " + s);
 			}
@@ -599,8 +581,7 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 					continue;
 				}
 
-				t = map.get(tl);
-				if (t == -1) map.put(tl, t = (int)map.size());
+				t = map.getNode(tl);
 
 				if (DEBUG) System.err.println("Parsed target at line " + line + ": " + tl + " => " + t);
 			}
@@ -691,7 +672,7 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 	 * @param pl a progress logger, or <code>null</code>.
 	 */
 	public ScatteredArcsASCIIGraph(final Iterator<long[]> arcs, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
-		final Long2IntOpenHashBigMap map = new Long2IntOpenHashBigMap();
+		final ID2NodeMap map = new ID2NodeMap();
 
 		int numNodes = -1;
 
@@ -709,11 +690,9 @@ public class ScatteredArcsASCIIGraph extends ImmutableSequentialGraph {
 		while(arcs.hasNext()) {
 			final long[] arc = arcs.next();
 			final long sl = arc[0];
-			int s = map.get(sl);
-			if (s == -1) map.put(sl, s = (int)map.size());
+			final int s = map.getNode(sl);
 			final long tl = arc[1];
-			int t = map.get(tl);
-			if (t == -1) map.put(tl, t = (int)map.size());
+			final int t = map.getNode(tl);
 
 			if (s != t || ! noLoops) {
 				source[j] = s;
