@@ -29,7 +29,7 @@ SPLITS=$(for file in ${SPLIT}?*; do echo $file; done)
 for file in $SPLITS; do 
 	mkfifo $file.pipe
 	if [[ "$OUTPUT" != "" ]]; then
-		(tail -q -n+2 $(cat $file) | cut -f2,7,10 | awk '{ if ($3 != 0) print $2 "\t" $1 }' | sort -k2 -S2G >$file.pipe) &
+		(tail -q -n+2 $(cat $file) | cut -f2,7,10 | awk '{ if ($3 == 0) print $2 "\t" $1 }' | sort -k2 -S2G >$file.pipe) &
 	else
 		(tail -q -n+2 $(cat $file) | cut -f7,13 | sort -k2 -S2G >$file.pipe) &
 	fi
