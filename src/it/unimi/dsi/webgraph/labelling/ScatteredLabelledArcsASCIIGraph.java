@@ -17,6 +17,7 @@
 
 package it.unimi.dsi.webgraph.labelling;
 
+import com.martiansoftware.jsap.*;
 import it.unimi.dsi.Util;
 import it.unimi.dsi.fastutil.BigArrays;
 import it.unimi.dsi.fastutil.Hash;
@@ -35,6 +36,7 @@ import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
+import it.unimi.dsi.webgraph.BVGraph;
 import it.unimi.dsi.webgraph.ImmutableSequentialGraph;
 import it.unimi.dsi.webgraph.ScatteredArcsASCIIGraph;
 import it.unimi.dsi.webgraph.Transform;
@@ -47,10 +49,13 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPInputStream;
 
 import static it.unimi.dsi.fastutil.HashCommon.bigArraySize;
 import static it.unimi.dsi.fastutil.HashCommon.maxFill;
 import static it.unimi.dsi.webgraph.Transform.processTransposeBatch;
+import static it.unimi.dsi.webgraph.labelling.ArcLabelledImmutableGraph.UNDERLYINGGRAPH_SUFFIX;
 
 /**
  * TODO: write description (adapt the one from ScatteredArcsASCIIGraph)
@@ -505,7 +510,10 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	 * Creates a scattered-arcs ASCII graph.
 	 *
 	 * @param arcs an iterator returning the arcs as two-element arrays.
+	 * @param function a function to map the long ids passed in <code>arcs</code> to int nodes.
 	 * @param arcLabels a homogeneous iterator returning the labels in the same order as the arcs.
+	 * @param labelMergeStrategy a merge strategy to apply when encountering duplicate arcs with different labels.
+	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
 	 * @param symmetrize the new graph will be forced to be symmetric.
 	 * @param noLoops the new graph will have no loops.
 	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by
@@ -515,7 +523,6 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	 * @param pl a progress logger, or <code>null</code>.
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final Iterator<long[]> arcs, final Long2IntFunction function, final Iterator<Label> arcLabels, LabelMergeStrategy labelMergeStrategy, final int n, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
-		// TODO: NUOVA MAPPA
 		ScatteredArcsASCIIGraph.Id2NodeMap map = new ScatteredArcsASCIIGraph.Id2NodeMap();
 
 		int numNodes = -1;
@@ -690,212 +697,19 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		return ms.toString();
 	}
 
-	// TODO: Move somewhere else
-	// Given a label prototype and a value set the value inside the label without creating a new one
-	// it's like a setter, but for labels.
 	public interface LabelMapping {
-		void apply(Label prototype, String representation);
+		void apply(Label prototype, CharSequence representation);
 	}
 
-	private static final class Long2IntOpenHashBigMap implements java.io.Serializable, Cloneable, Hash {
-		public static final long serialVersionUID = 0L;
-		/**
-		 * The acceptable load factor.
-		 */
-		private final float f;
-		/**
-		 * The big array of keys.
-		 */
-		public transient long[][] key;
-		/**
-		 * The big array of values.
-		 */
-		public transient int[][] value;
-		/**
-		 * The big array telling whether a position is used.
-		 */
-		private transient boolean[][] used;
-		/**
-		 * The current table size (always a power of 2).
-		 */
-		private transient long n;
-
-		/**
-		 * Threshold after which we rehash. It must be the table size times {@link #f}.
-		 */
-		private transient long maxFill;
-
-		/**
-		 * The mask for wrapping a position counter.
-		 */
-		private transient long mask;
-
-		/**
-		 * The mask for wrapping a segment counter.
-		 */
-		private transient int segmentMask;
-
-		/**
-		 * The mask for wrapping a base counter.
-		 */
-		private transient int baseMask;
-
-		/**
-		 * Number of entries in the set.
-		 */
-		private long size;
-
-		/**
-		 * Creates a new hash big set.
-		 *
-		 * <p>The actual table size will be the least power of two greater than
-		 * <code>expected</code>/<code>f</code>.
-		 *
-		 * @param expected the expected number of elements in the set.
-		 * @param f the load factor.
-		 */
-		public Long2IntOpenHashBigMap(final long expected, final float f) {
-			if (f <= 0 || f > 1)
-				throw new IllegalArgumentException("Load factor must be greater than 0 and smaller than or equal to 1");
-			if (this.n < 0) throw new IllegalArgumentException("The expected number of elements must be nonnegative");
-			this.f = f;
-			this.n = bigArraySize(expected, f);
-			this.maxFill = maxFill(this.n, f);
-			this.key = LongBigArrays.newBigArray(this.n);
-			this.value = IntBigArrays.newBigArray(this.n);
-			this.used = BooleanBigArrays.newBigArray(this.n);
-			this.initMasks();
-		}
-
-		/**
-		 * Creates a new hash big set with initial expected {@link Hash#DEFAULT_INITIAL_SIZE} elements and
-		 * {@link Hash#DEFAULT_LOAD_FACTOR} as load factor.
-		 */
-
-		public Long2IntOpenHashBigMap() {
-			this(DEFAULT_INITIAL_SIZE, DEFAULT_LOAD_FACTOR);
-		}
-
-		/**
-		 * Initialises the mask values.
-		 */
-		private void initMasks() {
-			this.mask = this.n - 1;
-			/*
-			 * Note that either we have more than one segment, and in this case all segments are
-			 * BigArrays.SEGMENT_SIZE long, or we have exactly one segment whose length is a power of
-			 * two.
-			 */
-			this.segmentMask = this.key[0].length - 1;
-			this.baseMask = this.key.length - 1;
-		}
-
-		public int put(final long k, final int v) {
-			final long h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
-
-			// The starting point.
-			int displ = (int)(h & this.segmentMask);
-			int base = (int)((h & this.mask) >>> BigArrays.SEGMENT_SHIFT);
-
-			// There's always an unused entry.
-			while (this.used[base][displ]) {
-				if (k == this.key[base][displ]) {
-					final int oldValue = this.value[base][displ];
-					this.value[base][displ] = v;
-					return oldValue;
-				}
-				base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
-			}
-
-			this.used[base][displ] = true;
-			this.key[base][displ] = k;
-			this.value[base][displ] = v;
-
-			if (++this.size >= this.maxFill) this.rehash(2 * this.n);
-			return -1;
-		}
-
-		public int get(final long k) {
-			final long h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
-
-			// The starting point.
-			int displ = (int)(h & this.segmentMask);
-			int base = (int)((h & this.mask) >>> BigArrays.SEGMENT_SHIFT);
-
-			// There's always an unused entry.
-			while (this.used[base][displ]) {
-				if (k == this.key[base][displ]) return this.value[base][displ];
-				base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
-			}
-
-			return -1;
-		}
-
-		private void rehash(final long newN) {
-			final boolean[][] used = this.used;
-			final long[][] key = this.key;
-			final int[][] value = this.value;
-			final boolean[][] newUsed = BooleanBigArrays.newBigArray(newN);
-			final long[][] newKey = LongBigArrays.newBigArray(newN);
-			final int[][] newValue = IntBigArrays.newBigArray(newN);
-			final long newMask = newN - 1;
-			final int newSegmentMask = newKey[0].length - 1;
-			final int newBaseMask = newKey.length - 1;
-
-			int base = 0, displ = 0;
-			long h;
-			long k;
-
-			for (long i = this.size; i-- != 0; ) {
-
-				while (!used[base][displ]) base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0));
-
-				k = key[base][displ];
-				h = it.unimi.dsi.fastutil.HashCommon.murmurHash3(k);
-
-				// The starting point.
-				int d = (int)(h & newSegmentMask);
-				int b = (int)((h & newMask) >>> BigArrays.SEGMENT_SHIFT);
-
-				while (newUsed[b][d]) b = (b + ((d = (d + 1) & newSegmentMask) == 0 ? 1 : 0)) & newBaseMask;
-
-				newUsed[b][d] = true;
-				newKey[b][d] = k;
-				newValue[b][d] = value[base][displ];
-
-				base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0));
-			}
-
-			this.n = newN;
-			this.key = newKey;
-			this.value = newValue;
-			this.used = newUsed;
-			this.initMasks();
-			this.maxFill = maxFill(this.n, this.f);
-		}
-
-		public void compact() {
-			int base = 0, displ = 0, b = 0, d = 0;
-			for (long i = this.size; i-- != 0; ) {
-				while (!this.used[base][displ])
-					base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
-				this.key[b][d] = this.key[base][displ];
-				this.value[b][d] = this.value[base][displ];
-				base = (base + ((displ = (displ + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
-				b = (b + ((d = (d + 1) & this.segmentMask) == 0 ? 1 : 0)) & this.baseMask;
-			}
-		}
-
-		public long size() {
-			return this.size;
-		}
-	}
-
-	/* @SuppressWarnings("unchecked")
+	@SuppressWarnings("unchecked")
 	public static void main(final String[] args) throws IllegalArgumentException, SecurityException, IOException, JSAPException, ClassNotFoundException {
-		String basename;
-		final SimpleJSAP jsap = new SimpleJSAP(ScatteredLabelledArcsASCIIGraph.class.getName(), "Converts a scattered list of arcs from standard input into a BVGraph. The list of" +
-				"identifiers in order of appearance will be saved with extension \"" + IDS_EXTENSION + "\", unless a translation function has been specified.",
+		final SimpleJSAP jsap = new SimpleJSAP(ScatteredLabelledArcsASCIIGraph.class.getName(),
+				"Converts a scattered list of labelled arcs from standard input into a BVGraph. The list of " +
+						"identifiers in order of appearance will be saved with extension \"" + IDS_EXTENSION + "\", " +
+						"unless a translation function has been specified. The labels must be written after each " +
+						"arc, will be interpreted as integers and stored in gamma coding unless a mapping function " +
+						"has been specified alongside a label prototype. The underlying representation of the labels " +
+						"will be saved as the given basename with the \"" + UNDERLYINGGRAPH_SUFFIX + "\" suffix.",
 				new Parameter[]{
 						new FlaggedOption("logInterval", JSAP.LONG_PARSER, Long.toString(ProgressLogger.DEFAULT_LOG_INTERVAL), JSAP.NOT_REQUIRED, 'l', "log-interval", "The minimum time interval between activity logs in milliseconds."),
 						new FlaggedOption("batchSize", JSAP.INTSIZE_PARSER, Integer.toString(DEFAULT_BATCH_SIZE), JSAP.NOT_REQUIRED, 's', "batch-size", "The maximum size of a batch, in arcs."),
@@ -911,20 +725,26 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 						new FlaggedOption("maxRefCount", JSAP.INTEGER_PARSER, String.valueOf(BVGraph.DEFAULT_MAX_REF_COUNT), JSAP.NOT_REQUIRED, 'm', "max-ref-count", "Maximum number of backward references (-1 for ∞)."),
 						new FlaggedOption("minIntervalLength", JSAP.INTEGER_PARSER, String.valueOf(BVGraph.DEFAULT_MIN_INTERVAL_LENGTH), JSAP.NOT_REQUIRED, 'i', "min-interval-length", "Minimum length of an interval (0 to disable)."),
 						new FlaggedOption("zetaK", JSAP.INTEGER_PARSER, String.valueOf(BVGraph.DEFAULT_ZETA_K), JSAP.NOT_REQUIRED, 'k', "zeta-k", "The k parameter for zeta-k codes."),
+						new FlaggedOption("labelPrototype", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'p', "label-prototype", "The prototype of the labels"),
+						new FlaggedOption("labelMapping", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'a', "label-mapping", "A serialised function from strings to the given label prototype that will be used to translate label strings to label object."),
+						new FlaggedOption("labelMergeStrategy", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'e', "label-merge-strategy", "A serialized LabelMergeStrategy object defining how to tread duplicater arcs with the same label."),
 						new UnflaggedOption("basename", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The basename of the output graph"),
 				}
 		);
 
 		final JSAPResult jsapResult = jsap.parse(args);
-		if (jsap.messagePrinted()) System.exit(1);
+		if (jsap.messagePrinted()) {
+			System.exit(1);
+		}
 
-		basename = jsapResult.getString("basename");
+		String basename = jsapResult.getString("basename");
 
 		int flags = 0;
-		for (final String compressionFlag : jsapResult.getStringArray("comp"))
+		for(final String compressionFlag: jsapResult.getStringArray("comp"))
 			try {
 				flags |= BVGraph.class.getField(compressionFlag).getInt(BVGraph.class);
-			} catch (final Exception notFound) {
+			}
+			catch (final Exception notFound) {
 				throw new JSAPException("Compression method " + compressionFlag + " unknown.");
 			}
 
@@ -937,27 +757,58 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		Object2LongFunction<String> function = null;
 		Charset charset = null;
 		int n = -1;
+
 		if (jsapResult.userSpecified("function")) {
 			function = (Object2LongFunction<String>) BinIO.loadObject(jsapResult.getString("function"));
 			charset = Charset.forName(jsapResult.getString("charset"));
 			if (function.size() == -1) {
-				if (!jsapResult.userSpecified("n"))
+				if (!jsapResult.userSpecified("n")) {
 					throw new IllegalArgumentException("You must specify a graph size if you specify a translation function that does not return the size of the key set.");
+				}
 				n = jsapResult.getInt("n");
-			} else n = function.size();
+			} else {
+				n = function.size();
+			}
+		}
+
+		if (jsapResult.userSpecified("labelPrototype") != jsapResult.userSpecified("labelMapping")) {
+			throw new IllegalArgumentException("You must specify either both a label prototype and a label mapping or none.");
+		}
+
+		Label labelPrototype = new GammaCodedIntLabel("FOO");
+		if (jsapResult.userSpecified("labelPrototype")) {
+			labelPrototype = (Label) BinIO.loadObject(jsapResult.getString("labelPrototype"));
+		}
+
+		LabelMapping labelMapping = (label, st) -> ((GammaCodedIntLabel)label).value = Integer.parseInt((String) st);
+		if (jsapResult.userSpecified("labelMapping")) {
+			labelMapping = (LabelMapping) BinIO.loadObject(jsapResult.getString("labelMapping"));
+		}
+
+		LabelMergeStrategy labelMergeStrategy = null;
+		if (jsapResult.userSpecified("labelMergeStrategy")) {
+			labelMergeStrategy = (LabelMergeStrategy) BinIO.loadObject(jsapResult.getString("labelMergeStrategy"));
 		}
 
 		File tempDir = null;
-		if (jsapResult.userSpecified("tempDir")) tempDir = new File(jsapResult.getString("tempDir"));
+		if (jsapResult.userSpecified("tempDir")) {
+			tempDir = new File(jsapResult.getString("tempDir"));
+		}
 
 		final ProgressLogger pl = new ProgressLogger(LOGGER, jsapResult.getLong("logInterval"), TimeUnit.MILLISECONDS);
 		final boolean zipped = jsapResult.getBoolean("zipped");
 		final InputStream inStream = (zipped ? new GZIPInputStream(System.in) : System.in);
-		final ScatteredLabelledArcsASCIIGraph graph = new ScatteredLabelledArcsASCIIGraph(inStream, function,
-				// TODO: insert default labelMapping e labelFunction
-				charset, n, jsapResult.userSpecified("symmetrize"), jsapResult.userSpecified("noLoops"), jsapResult.getInt("batchSize"), tempDir, pl);
-		BVGraph.store(graph, basename, windowSize, maxRefCount, minIntervalLength, zetaK, flags, pl);
-		if (function == null) BinIO.storeLongs(graph.ids, basename + IDS_EXTENSION);
-	} */
+
+		final ScatteredLabelledArcsASCIIGraph graph = new ScatteredLabelledArcsASCIIGraph(
+				inStream, function, labelPrototype, labelMapping, labelMergeStrategy,
+				charset, n, jsapResult.userSpecified("symmetrize"), jsapResult.userSpecified("noLoops"),
+				jsapResult.getInt("batchSize"), tempDir, pl);
+		BVGraph.storeLabelled(graph.arcLabelledBatchGraph, basename, basename + UNDERLYINGGRAPH_SUFFIX,
+				windowSize, maxRefCount, minIntervalLength, zetaK, flags, pl);
+
+		if (function == null) {
+			BinIO.storeLongs(graph.ids, basename + IDS_EXTENSION);
+		}
+	}
 }
 

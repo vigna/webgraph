@@ -39,7 +39,7 @@ public class ScatteredLabelledArcsASCIIGraphTest extends WebGraphTestCase {
 	private static final Label gammaPrototype = new GammaCodedIntLabel("FOO");
 	private static final Long2IntFunction identity = Math::toIntExact;
 	private static final LabelMapping hashcodeMapping = (label, st) -> ((GammaCodedIntLabel)label).value = st.hashCode();
-	private static final LabelMapping integerMapping = (label, st) -> ((GammaCodedIntLabel)label).value = Integer.parseInt(st);
+	private static final LabelMapping integerMapping = (label, st) -> ((GammaCodedIntLabel)label).value = Integer.parseInt((String) st);
 
 	private static Iterator<long[]> toArcsIterator(final String s) {
 		final String[] arcs = s.split("\n");
