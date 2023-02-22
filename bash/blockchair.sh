@@ -34,7 +34,7 @@ for file in $SPLITS; do
 	fi
 done
 
-sort -S2G -m $(for file in $SPLITS; do echo $file.pipe; done)
+sort -k2 -S2G -m $(for file in $SPLITS; do echo $file.pipe; done)
 
 rm $FILES
 rm ${SPLIT}*
