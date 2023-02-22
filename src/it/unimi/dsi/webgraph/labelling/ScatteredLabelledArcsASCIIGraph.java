@@ -19,16 +19,11 @@ package it.unimi.dsi.webgraph.labelling;
 
 import com.martiansoftware.jsap.*;
 import it.unimi.dsi.Util;
-import it.unimi.dsi.fastutil.BigArrays;
-import it.unimi.dsi.fastutil.Hash;
-import it.unimi.dsi.fastutil.booleans.BooleanBigArrays;
 import it.unimi.dsi.fastutil.bytes.ByteArrays;
-import it.unimi.dsi.fastutil.ints.IntBigArrays;
 import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.io.FastBufferedInputStream;
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import it.unimi.dsi.fastutil.longs.Long2IntFunction;
-import it.unimi.dsi.fastutil.longs.LongBigArrays;
 import it.unimi.dsi.fastutil.objects.Object2IntFunction;
 import it.unimi.dsi.fastutil.objects.Object2LongFunction;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -36,10 +31,8 @@ import it.unimi.dsi.io.InputBitStream;
 import it.unimi.dsi.io.OutputBitStream;
 import it.unimi.dsi.lang.MutableString;
 import it.unimi.dsi.logging.ProgressLogger;
-import it.unimi.dsi.webgraph.BVGraph;
-import it.unimi.dsi.webgraph.ImmutableSequentialGraph;
-import it.unimi.dsi.webgraph.ScatteredArcsASCIIGraph;
-import it.unimi.dsi.webgraph.Transform;
+import it.unimi.dsi.sux4j.mph.GOV3Function;
+import it.unimi.dsi.webgraph.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,13 +45,95 @@ import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
-import static it.unimi.dsi.fastutil.HashCommon.bigArraySize;
-import static it.unimi.dsi.fastutil.HashCommon.maxFill;
 import static it.unimi.dsi.webgraph.Transform.processTransposeBatch;
 import static it.unimi.dsi.webgraph.labelling.ArcLabelledImmutableGraph.UNDERLYINGGRAPH_SUFFIX;
 
 /**
- * TODO: write description (adapt the one from ScatteredArcsASCIIGraph)
+ * An {@link ArcLabelledImmutableGraph} that corresponds to a labelled graph stored as a scattered list of arcs.
+ *
+ * <p>
+ * A <em>scattered list of arcs</em> describes a graph in a fairly loose way. Each line contains a
+ * labelled arc specified as two node identifiers and a label separated by whitespace (but we suggest exactly one TAB
+ * character).
+ *
+ * <p>
+ * In the <em>standard</em> description, node identifiers can be in the range
+ * [-2<sup>63</sup>..2<sup>63</sup>): they will be remapped in a compact identifier space by
+ * assigning to each newly seen identifier a new node number. The list of identifiers in order of
+ * appearance is available in {@link #ids}. Lines can be empty, or comments starting with
+ * <code>#</code>. Characters following the target will be discarded with a warning.
+ * Similarly, the labels can be in the range [-2<sup>63</sup>..2<sup>63</sup>) and will be saved
+ * as-is in gamma coding, in case of duplicates only the last new label will be considered,
+ * this behaviour can be changed by providing more parameters.
+ *
+ * <p>
+ * <strong>Warning:</strong> Lines not conforming the above specification will cause an error to be
+ * logged, but will be otherwise ignored.
+ *
+ * <p>
+ * Alternatively, you can
+ * {@linkplain #ScatteredLabelledArcsASCIIGraph(InputStream, Object2LongFunction, Charset, int, boolean)
+ * provide} an {@link Object2LongFunction Object2LongFunction&lt;String>} with default return value
+ * -1 that will be used to map identifiers to node numbers, along with a {@link Charset} to parse
+ * lines and the number of nodes of the graph (which must be a strict upper bound for the largest
+ * value returned by the function). Note that in principle an {@link Object2IntFunction} would be
+ * sufficient, but we want to make easier using functions from Sux4J such as {@link GOV3Function}.
+ *
+ * <p>
+ * Additionally, the resulting graph can be symmetrized, and its loops be removed, using
+ * {@linkplain #ScatteredLabelledArcsASCIIGraph(InputStream, boolean, boolean, int, File, ProgressLogger)
+ * suitable constructor options}.
+ *
+ * <p>
+ * You can provide {@linkplain #ScatteredLabelledArcsASCIIGraph(InputStream, labelPrototype, labelMapping, labelMergeStrategy)
+ * suitable constructor options} a {@link Label} as prototype, a {@link LabelMapping} as a way to
+ * convert the written labels to object of the prototype's type and a {@link LabelMergeStrategy}
+ * to handle the case of identical arcs with different labels.
+ *
+ * <p>
+ * This class has no load method, and its main method converts a scattered-arcs representation
+ * directly into a {@link BVGraph}.
+ *
+ * <h2>Using {@link ScatteredLabelledArcsASCIIGraph} to convert your data</h2>
+ *
+ * <p>
+ * A simple (albeit rather inefficient) way to import data into WebGraph is using ASCII graphs
+ * specified by scattered arcs. Suppose you create the following file, named
+ * <code>example.arcs</code>:
+ *
+ * <pre>
+ *  # My graph
+ *  -1 15 100
+ *  15 2 200
+ *  2 -1 300 This will cause a warning to be logged
+ *  OOPS! (This will cause an error to be logged)
+ *  -1 2 400
+ * </pre>
+ *
+ * Then, the command
+ *
+ * <pre>
+ *  java it.unimi.dsi.webgraph.ScatteredLabelledArcsASCIIGraph example &lt; example.arcs
+ * </pre>
+ *
+ * will produce a compressed labelled graph in {@link it.unimi.dsi.webgraph.BVGraph} format.
+ * The underlying graph will be saved with basename <code>example-underlying</code>.
+ * The file <code>example.ids</code> will contain the list of longs -1, 15, 2.
+ * The node with identifer -1 will be the node 0 in the output graph, the node with identifier
+ * 15 will be node 1, and the node with identifier 2 will be node 2. The graph <code>example</code>
+ * will thus have three nodes and four arcs (viz., &lt;0,1&gt;, &lt;0,2&gt;, &lt;1,2&gt; and
+ * &lt;2,0&gt;). The labels will be saved as <code>example.labels</code> in the order of visit
+ * of the arcs, the offset <code>example.labeloffsets</code> relay the offset of each specific label,
+ * because in general labels are not written in a fixed number of bits.
+ *
+ * <h2>Memory requirements</h2>
+ *
+ * <p>
+ * To convert node identifiers to node numbers, instances of this class use a custom map that in the
+ * worst case will require
+ * 19.5&times;2<sup>&lceil;log(4<var>n</var>/3)&rceil;</sup>&nbsp;&le;&nbsp;52<var>n</var> bytes,
+ * where <var>n</var> is the number of distinct identifiers. Storing batches of arcs in memory
+ * requires 8 bytes per arc.
  */
 
 public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
@@ -66,8 +141,18 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	 * The default batch size.
 	 */
 	public static final int DEFAULT_BATCH_SIZE = 1000000;
+	/**
+	 * The default label prototype.
+	 */
+	public static final Label DEFAULT_LABEL_PROTOTYPE = new GammaCodedIntLabel("FOO");
+	/**
+	 * The default label mapping function.
+	 */
+	public static final LabelMapping DEFAULT_LABEL_MAPPING = (label, st) -> ((GammaCodedIntLabel) label).value = Integer.parseInt((String) st);
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(ScatteredLabelledArcsASCIIGraph.class);
 	private final static boolean DEBUG = false;
+
 	/**
 	 * The extension of the identifier file (a binary list of longs).
 	 */
@@ -80,6 +165,15 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	 * The list of identifiers in order of appearance.
 	 */
 	public long[] ids;
+
+	/**
+	 * Creates a scattered-arcs ASCII graph.
+	 *
+	 * @param is an input stream containing a standard scattered list of arcs.
+	 */
+	public ScatteredLabelledArcsASCIIGraph(final InputStream is) throws IOException {
+		this(is, DEFAULT_LABEL_PROTOTYPE, DEFAULT_LABEL_MAPPING, null, false);
+	}
 
 	/**
 	 * Creates a scattered-arcs ASCII graph.
@@ -168,6 +262,22 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
+	 * @param is         an input stream containing a standard scattered list of arcs.
+	 * @param symmetrize the new graph will be forced to be symmetric.
+	 * @param noLoops    the new graph will have no loops.
+	 * @param batchSize  the number of integers in a batch; two arrays of integers of this size will be allocated by
+	 *                   this method.
+	 * @param tempDir    a temporary directory for the batches, or <code>null</code> for
+	 *                   {@link File#createTempFile(String, String)}'s choice.
+	 * @param pl         a progress logger, or <code>null</code>.
+	 */
+	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
+		this(is, null, null, -1, DEFAULT_LABEL_PROTOTYPE, DEFAULT_LABEL_MAPPING, null, symmetrize, noLoops, batchSize, tempDir, pl);
+	}
+
+	/**
+	 * Creates a scattered-arcs ASCII graph.
+	 *
 	 * @param is an input stream containing a standard scattered list of arcs.
 	 * @param labelPrototype an example of the labels contained in the graph.
 	 * @param labelMapping a function mapping string into the label defined by the prototype.
@@ -181,128 +291,143 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	 * @param pl a progress logger, or <code>null</code>.
 	 */
 	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Label labelPrototype, final LabelMapping labelMapping, final LabelMergeStrategy labelMergeStrategy, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
-		this(is, null, labelPrototype, labelMapping, labelMergeStrategy, null, -1, symmetrize, noLoops, batchSize, tempDir, pl);
+		this(is, null, null, -1, labelPrototype, labelMapping, labelMergeStrategy, symmetrize, noLoops, batchSize, tempDir, pl);
 	}
 
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is an input stream containing a scattered list of arcs.
-	 * @param function an explicitly provided function from string representing nodes to node numbers, or
-	 * 		<code>null</code> for the standard behaviour.
-	 * @param labelPrototype an example of the labels contained in the graph.
-	 * @param labelMapping a function mapping string into the label defined by the prototype.
+	 * @param is                 an input stream containing a scattered list of arcs.
+	 * @param function           an explicitly provided function from string representing nodes to node numbers, or
+	 *                           <code>null</code> for the standard behaviour.
+	 * @param charset            a character set that will be used to read the identifiers passed to <code>function</code>, or
+	 *                           <code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
+	 * @param n                  the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param labelPrototype     an example of the labels contained in the graph.
+	 * @param labelMapping       a function mapping string into the label defined by the prototype.
 	 * @param labelMergeStrategy a merge strategy to apply when encountering duplicate arcs with different labels.
-	 * @param charset a character set that will be used to read the identifiers passed to <code>function</code>, or
-	 * 		<code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
-	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
 	 */
-	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Label labelPrototype, final LabelMapping labelMapping, final LabelMergeStrategy labelMergeStrategy, final Charset charset, final int n) throws IOException {
-		this(is, function, labelPrototype, labelMapping, labelMergeStrategy, charset, n, false);
+	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Charset charset, final int n, final Label labelPrototype, final LabelMapping labelMapping, final LabelMergeStrategy labelMergeStrategy) throws IOException {
+		this(is, function, charset, n, labelPrototype, labelMapping, labelMergeStrategy, false);
 	}
 
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is an input stream containing a scattered list of arcs.
-	 * @param function an explicitly provided function from string representing nodes to node numbers, or
-	 * 		<code>null</code> for the standard behaviour.
-	 * @param labelPrototype an example of the labels contained in the graph.
-	 * @param labelMapping a function mapping string into the label defined by the prototype.
-	 * @param labelMergeStrategy a merge strategy to apply when encountering duplicate arcs with different labels.
-	 * @param charset a character set that will be used to read the identifiers passed to <code>function</code>, or
-	 * 		<code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
-	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
-	 * @param symmetrize the new graph will be forced to be symmetric.
+	 * @param is                 an input stream containing a scattered list of arcs.
+	 * @param function           an explicitly provided function from string representing nodes to node numbers, or
+	 *                           <code>null</code> for the standard behaviour.
+	 * @param charset            a character set that will be used to read the identifiers passed to <code>function</code>, or
+	 *                           <code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
+	 * @param n                  the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param symmetrize         the new graph will be forced to be symmetric.
 	 */
-	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Label labelPrototype, final LabelMapping labelMapping, final LabelMergeStrategy labelMergeStrategy, final Charset charset, final int n, final boolean symmetrize) throws IOException {
-		this(is, function, labelPrototype, labelMapping, labelMergeStrategy, charset, n, symmetrize, false);
+	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Charset charset, final int n, final boolean symmetrize) throws IOException {
+		this(is, function, charset, n, DEFAULT_LABEL_PROTOTYPE, DEFAULT_LABEL_MAPPING, null, symmetrize, false);
 	}
 
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is an input stream containing a scattered list of arcs.
-	 * @param function an explicitly provided function from string representing nodes to node numbers, or
-	 * 		<code>null</code> for the standard behaviour.
-	 * @param labelPrototype an example of the labels contained in the graph.
-	 * @param labelMapping a function mapping string into the label defined by the prototype.
+	 * @param is                 an input stream containing a scattered list of arcs.
+	 * @param function           an explicitly provided function from string representing nodes to node numbers, or
+	 *                           <code>null</code> for the standard behaviour.
+	 * @param charset            a character set that will be used to read the identifiers passed to <code>function</code>, or
+	 *                           <code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
+	 * @param n                  the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param labelPrototype     an example of the labels contained in the graph.
+	 * @param labelMapping       a function mapping string into the label defined by the prototype.
 	 * @param labelMergeStrategy a merge strategy to apply when encountering duplicate arcs with different labels.
-	 * @param charset a character set that will be used to read the identifiers passed to <code>function</code>, or
-	 * 		<code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
-	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
-	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops the new graph will have no loops.
+	 * @param symmetrize         the new graph will be forced to be symmetric.
 	 */
-	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Label labelPrototype, final LabelMapping labelMapping, final LabelMergeStrategy labelMergeStrategy, final Charset charset, final int n, final boolean symmetrize, final boolean noLoops) throws IOException {
-		this(is, function, labelPrototype, labelMapping, labelMergeStrategy, charset, n, symmetrize, noLoops, DEFAULT_BATCH_SIZE);
+	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Charset charset, final int n, final Label labelPrototype, final LabelMapping labelMapping, final LabelMergeStrategy labelMergeStrategy, final boolean symmetrize) throws IOException {
+		this(is, function, charset, n, labelPrototype, labelMapping, labelMergeStrategy, symmetrize, false);
 	}
 
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is an input stream containing a scattered list of arcs.
-	 * @param function an explicitly provided function from string representing nodes to node numbers, or
-	 * 		<code>null</code> for the standard behaviour.
-	 * @param labelPrototype an example of the labels contained in the graph.
-	 * @param labelMapping a function mapping string into the label defined by the prototype.
+	 * @param is                 an input stream containing a scattered list of arcs.
+	 * @param function           an explicitly provided function from string representing nodes to node numbers, or
+	 *                           <code>null</code> for the standard behaviour.
+	 * @param charset            a character set that will be used to read the identifiers passed to <code>function</code>, or
+	 *                           <code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
+	 * @param n                  the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param labelPrototype     an example of the labels contained in the graph.
+	 * @param labelMapping       a function mapping string into the label defined by the prototype.
 	 * @param labelMergeStrategy a merge strategy to apply when encountering duplicate arcs with different labels.
-	 * @param charset a character set that will be used to read the identifiers passed to <code>function</code>, or
-	 * 		<code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
-	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
-	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops the new graph will have no loops.
-	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by
-	 * 		this method.
+	 * @param symmetrize         the new graph will be forced to be symmetric.
+	 * @param noLoops            the new graph will have no loops.
 	 */
-	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Label labelPrototype, final LabelMapping labelMapping, final LabelMergeStrategy labelMergeStrategy, final Charset charset, final int n, final boolean symmetrize, final boolean noLoops, final int batchSize) throws IOException {
-		this(is, function, labelPrototype, labelMapping, labelMergeStrategy, charset, n, symmetrize, noLoops, batchSize, null);
+	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Charset charset, final int n, final Label labelPrototype, final LabelMapping labelMapping, final LabelMergeStrategy labelMergeStrategy, final boolean symmetrize, final boolean noLoops) throws IOException {
+		this(is, function, charset, n, labelPrototype, labelMapping, labelMergeStrategy, symmetrize, noLoops, DEFAULT_BATCH_SIZE);
 	}
 
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is an input stream containing a scattered list of arcs.
-	 * @param function an explicitly provided function from string representing nodes to node numbers, or
-	 * 		<code>null</code> for the standard behaviour.
-	 * @param labelPrototype an example of the labels contained in the graph.
-	 * @param labelMapping a function mapping string into the label defined by the prototype.
+	 * @param is                 an input stream containing a scattered list of arcs.
+	 * @param function           an explicitly provided function from string representing nodes to node numbers, or
+	 *                           <code>null</code> for the standard behaviour.
+	 * @param charset            a character set that will be used to read the identifiers passed to <code>function</code>, or
+	 *                           <code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
+	 * @param n                  the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param labelPrototype     an example of the labels contained in the graph.
+	 * @param labelMapping       a function mapping string into the label defined by the prototype.
 	 * @param labelMergeStrategy a merge strategy to apply when encountering duplicate arcs with different labels.
-	 * @param charset a character set that will be used to read the identifiers passed to <code>function</code>, or
-	 * 		<code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
-	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
-	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops the new graph will have no loops.
-	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by
-	 * 		this method.
-	 * @param tempDir a temporary directory for the batches, or <code>null</code> for
-	 *        {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
+	 * @param symmetrize         the new graph will be forced to be symmetric.
+	 * @param noLoops            the new graph will have no loops.
+	 * @param batchSize          the number of integers in a batch; two arrays of integers of this size will be allocated by
+	 *                           this method.
 	 */
-	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Label labelPrototype, final LabelMapping labelMapping, final LabelMergeStrategy labelMergeStrategy, final Charset charset, final int n, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir) throws IOException {
-		this(is, function, labelPrototype, labelMapping, labelMergeStrategy, charset, n, symmetrize, noLoops, batchSize, tempDir, null);
+	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Charset charset, final int n, final Label labelPrototype, final LabelMapping labelMapping, final LabelMergeStrategy labelMergeStrategy, final boolean symmetrize, final boolean noLoops, final int batchSize) throws IOException {
+		this(is, function, charset, n, labelPrototype, labelMapping, labelMergeStrategy, symmetrize, noLoops, batchSize, null);
 	}
 
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param is an input stream containing a scattered list of arcs.
-	 * @param function an explicitly provided function from string representing nodes to node numbers, or
-	 * 		<code>null</code> for the standard behaviour.
-	 * @param labelPrototype an example of the labels contained in the graph.
-	 * @param labelMapping a function mapping string into the label defined by the prototype.
+	 * @param is                 an input stream containing a scattered list of arcs.
+	 * @param function           an explicitly provided function from string representing nodes to node numbers, or
+	 *                           <code>null</code> for the standard behaviour.
+	 * @param charset            a character set that will be used to read the identifiers passed to <code>function</code>, or
+	 *                           <code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
+	 * @param n                  the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param labelPrototype     an example of the labels contained in the graph.
+	 * @param labelMapping       a function mapping string into the label defined by the prototype.
 	 * @param labelMergeStrategy a merge strategy to apply when encountering duplicate arcs with different labels.
-	 * @param charset a character set that will be used to read the identifiers passed to <code>function</code>, or
-	 * 		<code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
-	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
-	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops the new graph will have no loops.
-	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by
-	 * 		this method.
-	 * @param tempDir a temporary directory for the batches, or <code>null</code> for
-	 *        {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
-	 * @param pl a progress logger, or <code>null</code>.
+	 * @param symmetrize         the new graph will be forced to be symmetric.
+	 * @param noLoops            the new graph will have no loops.
+	 * @param batchSize          the number of integers in a batch; two arrays of integers of this size will be allocated by
+	 *                           this method.
+	 * @param tempDir            a temporary directory for the batches, or <code>null</code> for
+	 *                           {@link File#createTempFile(String, String)}'s choice.
 	 */
-	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Label labelPrototype, final LabelMapping labelMapping, final LabelMergeStrategy labelMergeStrategy, Charset charset, final int n, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
+	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, final Charset charset, final int n, final Label labelPrototype, final LabelMapping labelMapping, final LabelMergeStrategy labelMergeStrategy, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir) throws IOException {
+		this(is, function, charset, n, labelPrototype, labelMapping, labelMergeStrategy, symmetrize, noLoops, batchSize, tempDir, null);
+	}
+
+	/**
+	 * Creates a scattered-arcs ASCII graph.
+	 *
+	 * @param is                 an input stream containing a scattered list of arcs.
+	 * @param function           an explicitly provided function from string representing nodes to node numbers, or
+	 *                           <code>null</code> for the standard behaviour.
+	 * @param charset            a character set that will be used to read the identifiers passed to <code>function</code>, or
+	 *                           <code>null</code> for ISO-8859-1 (used only if <code>function</code> is not <code>null</code>).
+	 * @param n                  the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param labelPrototype     an example of the labels contained in the graph.
+	 * @param labelMapping       a function mapping string into the label defined by the prototype.
+	 * @param labelMergeStrategy a merge strategy to apply when encountering duplicate arcs with different labels.
+	 * @param symmetrize         the new graph will be forced to be symmetric.
+	 * @param noLoops            the new graph will have no loops.
+	 * @param batchSize          the number of integers in a batch; two arrays of integers of this size will be allocated by
+	 *                           this method.
+	 * @param tempDir            a temporary directory for the batches, or <code>null</code> for
+	 *                           {@link File#createTempFile(String, String)}'s choice.
+	 * @param pl                 a progress logger, or <code>null</code>.
+	 */
+	public ScatteredLabelledArcsASCIIGraph(final InputStream is, final Object2LongFunction<? extends CharSequence> function, Charset charset, final int n, final Label labelPrototype, final LabelMapping labelMapping, final LabelMergeStrategy labelMergeStrategy, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
 		@SuppressWarnings("resource")
 		final FastBufferedInputStream fbis = new FastBufferedInputStream(is);
 		ScatteredArcsASCIIGraph.Id2NodeMap map = new ScatteredArcsASCIIGraph.Id2NodeMap();
@@ -509,20 +634,20 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 	/**
 	 * Creates a scattered-arcs ASCII graph.
 	 *
-	 * @param arcs an iterator returning the arcs as two-element arrays.
-	 * @param function a function to map the long ids passed in <code>arcs</code> to int nodes.
-	 * @param arcLabels a homogeneous iterator returning the labels in the same order as the arcs.
+	 * @param arcs               an iterator returning the arcs as two-element arrays.
+	 * @param function           a function to map the long ids passed in <code>arcs</code> to int nodes.
+	 * @param n                  the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
+	 * @param arcLabels          a homogeneous iterator returning the labels in the same order as the arcs.
 	 * @param labelMergeStrategy a merge strategy to apply when encountering duplicate arcs with different labels.
-	 * @param n the number of nodes of the graph (used only if <code>function</code> is not <code>null</code>).
-	 * @param symmetrize the new graph will be forced to be symmetric.
-	 * @param noLoops the new graph will have no loops.
-	 * @param batchSize the number of integers in a batch; two arrays of integers of this size will be allocated by
-	 * 		this method.
-	 * @param tempDir a temporary directory for the batches, or <code>null</code> for
-	 *        {@link File#createTempFile(java.lang.String, java.lang.String)}'s choice.
-	 * @param pl a progress logger, or <code>null</code>.
+	 * @param symmetrize         the new graph will be forced to be symmetric.
+	 * @param noLoops            the new graph will have no loops.
+	 * @param batchSize          the number of integers in a batch; two arrays of integers of this size will be allocated by
+	 *                           this method.
+	 * @param tempDir            a temporary directory for the batches, or <code>null</code> for
+	 *                           {@link File#createTempFile(String, String)}'s choice.
+	 * @param pl                 a progress logger, or <code>null</code>.
 	 */
-	public ScatteredLabelledArcsASCIIGraph(final Iterator<long[]> arcs, final Long2IntFunction function, final Iterator<Label> arcLabels, LabelMergeStrategy labelMergeStrategy, final int n, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
+	public ScatteredLabelledArcsASCIIGraph(final Iterator<long[]> arcs, final Long2IntFunction function, final int n, final Iterator<Label> arcLabels, LabelMergeStrategy labelMergeStrategy, final boolean symmetrize, final boolean noLoops, final int batchSize, final File tempDir, final ProgressLogger pl) throws IOException {
 		ScatteredArcsASCIIGraph.Id2NodeMap map = new ScatteredArcsASCIIGraph.Id2NodeMap();
 
 		int numNodes = -1;
@@ -624,7 +749,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		pl.logger().info("Created " + batches.size() + " batches using " + Util.format((double)Byte.SIZE * length / pairs) + " bits/arc.");
 	}
 
-	private final static long getLong(final byte[] array, int offset, int length) {
+	private static long getLong(final byte[] array, int offset, int length) {
 		if (length == 0) throw new NumberFormatException("Empty number");
 		int sign = 1;
 		if (array[offset] == '-') {
@@ -775,12 +900,12 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 			throw new IllegalArgumentException("You must specify either both a label prototype and a label mapping or none.");
 		}
 
-		Label labelPrototype = new GammaCodedIntLabel("FOO");
+		Label labelPrototype = DEFAULT_LABEL_PROTOTYPE;
 		if (jsapResult.userSpecified("labelPrototype")) {
 			labelPrototype = (Label) BinIO.loadObject(jsapResult.getString("labelPrototype"));
 		}
 
-		LabelMapping labelMapping = (label, st) -> ((GammaCodedIntLabel)label).value = Integer.parseInt((String) st);
+		LabelMapping labelMapping = DEFAULT_LABEL_MAPPING;
 		if (jsapResult.userSpecified("labelMapping")) {
 			labelMapping = (LabelMapping) BinIO.loadObject(jsapResult.getString("labelMapping"));
 		}
@@ -800,8 +925,8 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		final InputStream inStream = (zipped ? new GZIPInputStream(System.in) : System.in);
 
 		final ScatteredLabelledArcsASCIIGraph graph = new ScatteredLabelledArcsASCIIGraph(
-				inStream, function, labelPrototype, labelMapping, labelMergeStrategy,
-				charset, n, jsapResult.userSpecified("symmetrize"), jsapResult.userSpecified("noLoops"),
+				inStream, function, charset, n, labelPrototype, labelMapping, labelMergeStrategy,
+				jsapResult.userSpecified("symmetrize"), jsapResult.userSpecified("noLoops"),
 				jsapResult.getInt("batchSize"), tempDir, pl);
 		BVGraph.storeLabelled(graph.arcLabelledBatchGraph, basename, basename + UNDERLYINGGRAPH_SUFFIX,
 				windowSize, maxRefCount, minIntervalLength, zetaK, flags, pl);
