@@ -437,7 +437,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 
 		int j;
 		int[] source = new int[batchSize], target = new int[batchSize];
-		final long[] labelStart = new long[batchSize];
+		long[] labelStart = new long[batchSize];
 		FastByteArrayOutputStream fbos = new FastByteArrayOutputStream();
 		OutputBitStream obs = new OutputBitStream(fbos);
 		final ObjectArrayList<File> batches = new ObjectArrayList<>(), labelBatches = new ObjectArrayList<>();
@@ -623,6 +623,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		numNodes = function == null ? (int)map.size() : function.size();
 		source = null;
 		target = null;
+		labelStart = null;
 
 		if (function == null) {
 			ids = map.getIds(tempDir);
@@ -654,7 +655,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 
 		int j;
 		int[] source = new int[batchSize], target = new int[batchSize];
-		final long[] labelStart = new long[batchSize];
+		long[] labelStart = new long[batchSize];
 		FastByteArrayOutputStream fbos = new FastByteArrayOutputStream();
 		OutputBitStream obs = new OutputBitStream(fbos);
 		Label prototype = null;
@@ -735,6 +736,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		numNodes = function == null ? (int)map.size() : function.size();
 		source = null;
 		target = null;
+		labelStart = null;
 
 		if (function == null) {
 			ids = map.getIds(tempDir);
