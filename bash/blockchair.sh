@@ -29,15 +29,15 @@ SPLITS=$(for file in ${SPLITBASE}?*; do echo $file; done)
 for SPLIT in $SPLITS; do 
 	mkfifo $SPLIT.pipe
 
-	# For each file, delete first line (labels) and add a newline at the end if missing
+	# For each file, delete first line (labels); cut will add a newline at the end if missing
 
 	if [[ "$OUTPUT" != "" ]]; then
 		( while read FILE; do
-			cut -f2,7,10 $FILE | LC_ALL=C sed -e '1d;$a\'
+			cut -f2,7,10 "$FILE" | tail -n+2
 		done <$SPLIT | awk '{ if ($3 == 0) print $2 "\t" $1 }' | LC_ALL=C sort -k2 -S2G >$SPLIT.pipe) &
 	else
 		( while read FILE; do
-			cut -f7,13 $FILE | LC_ALL=C sed -e '1d;$a\'
+			cut -f7,13 "$FILE" | tail -n+2
 		done <$SPLIT | LC_ALL=C sort -k2 -S2G >$SPLIT.pipe) &
 	fi
 done
@@ -45,4 +45,4 @@ done
 LC_ALL=C sort -k2 -S2G -m $(for SPLIT in $SPLITS; do echo $SPLIT.pipe; done)
 
 rm -f $FILES
-rm -f ${SPLIT}*
+rm -f ${SPLITBASE}*
