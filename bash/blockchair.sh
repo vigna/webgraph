@@ -12,14 +12,29 @@ DIR=$1
 NTHREADS=$2
 OUTPUT=$3
 
+function file_ends_with_newline() {
+	[[ $(tail -c1 "$1" | wc -l) -gt 0 ]]
+}
+
 FILES=$(mktemp)
 find $DIR -type f >$FILES
 
+# Check that all files end with a newline
+
+while read FILE; do
+	if ! file_ends_with_newline $FILE; then
+		echo "File $FILE does not end with a newline" 1>&2
+		exit 1
+	fi
+done <$FILES
+
 NFILES=$(cat $FILES | wc -l)
 
-if (( NFILES < 2 * NTHREADS )); then
-	echo "$NTHREADS threads > $NFILES files" 1>&2
-	exit 1
+# To avoid empty splits, there must be at least as many threads as files
+
+if (( NFILES < NTHREADS )); then
+	NTHREADS=$NFILES
+	echo "Not enough files: number of threads set to $NFILES" 1>&2
 fi
 
 SPLIT=$(mktemp)
@@ -29,13 +44,13 @@ SPLITS=$(for file in ${SPLIT}?*; do echo $file; done)
 for file in $SPLITS; do 
 	mkfifo $file.pipe
 	if [[ "$OUTPUT" != "" ]]; then
-		(tail -q -n+2 $(cat $file) | cut -f2,7,10 | awk '{ if ($3 == 0) print $2 "\t" $1 }' | sort -k2 -S2G >$file.pipe) &
+		(tail -q -n+2 $(cat $file) | cut -f2,7,10 | awk '{ if ($3 == 0) print $2 "\t" $1 }' | LC_ALL=C sort -k2 -S2G >$file.pipe) &
 	else
-		(tail -q -n+2 $(cat $file) | cut -f7,13 | sort -k2 -S2G >$file.pipe) &
+		(tail -q -n+2 $(cat $file) | cut -f7,13 | LC_ALL=C sort -k2 -S2G >$file.pipe) &
 	fi
 done
 
-sort -k2 -S2G -m $(for file in $SPLITS; do echo $file.pipe; done)
+LC_ALL=C sort -k2 -S2G -m $(for file in $SPLITS; do echo $file.pipe; done)
 
-rm $FILES
-rm ${SPLIT}*
+rm -f $FILES
+rm -f ${SPLIT}*
