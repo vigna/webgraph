@@ -33,16 +33,16 @@ for SPLIT in $SPLITS; do
 
 	if [[ "$OUTPUT" != "" ]]; then
 		( while read FILE; do
-			cut -f2,7,10 "$FILE" | tail -n+2
-		done <$SPLIT | awk '{ if ($3 == 0) print $2 "\t" $1 }' | LC_ALL=C sort -k2 -S2G >$SPLIT.pipe) &
+			cut -f2,7,10 "$FILE" | tail -n+2 | awk '{ if ($3 == 0) print $1 "\t" $2 }'
+		done <$SPLIT | LC_ALL=C sort -S2G >$SPLIT.pipe) &
 	else
 		( while read FILE; do
-			cut -f7,13 "$FILE" | tail -n+2
-		done <$SPLIT | LC_ALL=C sort -k2 -S2G >$SPLIT.pipe) &
+			cut -f7,13 "$FILE" | tail -n+2 | awk '{ print $2 "\t" $1 }'
+		done <$SPLIT | LC_ALL=C sort -S2G >$SPLIT.pipe) &
 	fi
 done
 
-LC_ALL=C sort -k2 -S2G -m $(for SPLIT in $SPLITS; do echo $SPLIT.pipe; done)
+LC_ALL=C sort -S2G -m $(for SPLIT in $SPLITS; do echo $SPLIT.pipe; done)
 
 rm -f $FILES
 rm -f ${SPLITBASE}*
