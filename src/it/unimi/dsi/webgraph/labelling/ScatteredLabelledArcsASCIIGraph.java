@@ -655,9 +655,10 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 
 		int j;
 		int[] source = new int[batchSize], target = new int[batchSize];
-		long[] start = new long[batchSize];
+		long[] labelStart = new long[batchSize];
 		FastByteArrayOutputStream fbos = new FastByteArrayOutputStream();
 		OutputBitStream obs = new OutputBitStream(fbos);
+		Label prototype = null;
 		final ObjectArrayList<File> batches = new ObjectArrayList<>(), labelBatches = new ObjectArrayList<>();
 
 		if (pl != null) {
@@ -665,7 +666,6 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 			pl.start("Creating sorted batches...");
 		}
 
-		Label l = null;
 		j = 0;
 		long pairs = 0; // Number of pairs
 		while (arcs.hasNext()) {
@@ -681,18 +681,19 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 				throw new IllegalArgumentException("Not enough labels");
 			}
 
-			l = arcLabels.next();
+			Label l = arcLabels.next();
+			prototype = prototype == null ? l : prototype;
 
 			if (s != t || !noLoops) {
 				source[j] = s;
 				target[j] = t;
-				start[j] = obs.writtenBits();
+				labelStart[j] = obs.writtenBits();
 				l.toBitStream(obs, s);
 				j++;
 
 				if (j == batchSize) {
 					obs.flush();
-					pairs += processTransposeBatch(batchSize, source, target, start, new InputBitStream(fbos.array), tempDir, batches, labelBatches, l, labelMergeStrategy);
+					pairs += processTransposeBatch(batchSize, source, target, labelStart, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype, labelMergeStrategy);
 					fbos = new FastByteArrayOutputStream();
 					obs = new OutputBitStream(fbos);
 					j = 0;
@@ -701,13 +702,13 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 				if (symmetrize && s != t) {
 					source[j] = t;
 					target[j] = s;
-					start[j] = obs.writtenBits();
+					labelStart[j] = obs.writtenBits();
 					l.toBitStream(obs, t);
 					j++;
 
 					if (j == batchSize) {
 						obs.flush();
-						pairs += processTransposeBatch(batchSize, source, target, start, new InputBitStream(fbos.array), tempDir, batches, labelBatches, l, labelMergeStrategy);
+						pairs += processTransposeBatch(batchSize, source, target, labelStart, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype, labelMergeStrategy);
 						fbos = new FastByteArrayOutputStream();
 						obs = new OutputBitStream(fbos);
 						j = 0;
@@ -724,7 +725,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 
 		if (j != 0) {
 			obs.flush();
-			pairs += processTransposeBatch(j, source, target, start, new InputBitStream(fbos.array), tempDir, batches, labelBatches, l, labelMergeStrategy);
+			pairs += processTransposeBatch(j, source, target, labelStart, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype, labelMergeStrategy);
 		}
 
 		if (pl != null) {
@@ -735,13 +736,13 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 		numNodes = function == null ? (int)map.size() : function.size();
 		source = null;
 		target = null;
-		start = null;
+		labelStart = null;
 
 		if (function == null) {
 			ids = map.getIds(tempDir);
 		}
 
-		this.arcLabelledBatchGraph = new Transform.ArcLabelledBatchGraph(function == null ? numNodes : n, pairs, batches, labelBatches, l, labelMergeStrategy);
+		this.arcLabelledBatchGraph = new Transform.ArcLabelledBatchGraph(function == null ? numNodes : n, pairs, batches, labelBatches, prototype, labelMergeStrategy);
 	}
 
 	protected static void logBatches(final ObjectArrayList<File> batches, final long pairs, final ProgressLogger pl) {
