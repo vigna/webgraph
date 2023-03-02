@@ -1622,6 +1622,13 @@ public class Transform {
 	public static int processTransposeBatch(final int n, final int[] source, final int[] target, final long[] start,
 	                                        final InputBitStream labelBitStream, final File tempDir, final List<File> batches, final List<File> labelBatches,
 	                                        Label prototype, final LabelMergeStrategy labelMergeStrategy) throws IOException {
+
+		// PROBLEM: when handling duplicate arcs we either merge the two given labels or only keep the last
+		// but this implies the need to reposition the label output stream, which must be byte-aligned.
+		// But this causes errors where zeroes are written between labels and therefore reading Gamma
+		// values causes issue.
+		// REMEMBER TO FIX THIS ISSUE IN THE OTHER BRANCH FIRST
+
 		it.unimi.dsi.fastutil.Arrays.parallelQuickSort(0, n, (x,y) -> {
 					final int t = Integer.compare(source[x], source[y]);
 					if (t != 0) return t;
