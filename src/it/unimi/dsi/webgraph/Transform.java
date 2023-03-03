@@ -17,12 +17,7 @@
 
 package it.unimi.dsi.webgraph;
 
-import java.io.BufferedOutputStream;
-import java.io.DataInput;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
