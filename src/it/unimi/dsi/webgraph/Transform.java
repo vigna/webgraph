@@ -1622,13 +1622,6 @@ public class Transform {
 	public static int processTransposeBatch(final int n, final int[] source, final int[] target, final long[] start,
 	                                        final InputBitStream labelBitStream, final File tempDir, final List<File> batches, final List<File> labelBatches,
 	                                        Label prototype, final LabelMergeStrategy labelMergeStrategy) throws IOException {
-
-		// PROBLEM: when handling duplicate arcs we either merge the two given labels or only keep the last
-		// but this implies the need to reposition the label output stream, which must be byte-aligned.
-		// But this causes errors where zeroes are written between labels and therefore reading Gamma
-		// values causes issue.
-		// REMEMBER TO FIX THIS ISSUE IN THE OTHER BRANCH FIRST
-
 		it.unimi.dsi.fastutil.Arrays.parallelQuickSort(0, n, (x,y) -> {
 					final int t = Integer.compare(source[x], source[y]);
 					if (t != 0) return t;
@@ -1658,8 +1651,6 @@ public class Transform {
 
 		// Used to handle duplicate arcs with different labels
 		final Label otherPrototype = prototype.copy();
-		// Position in labelObs of the last non-duplicate label written
-		long lastLabel = 0;
 
 		int u = 0;
 
@@ -1675,7 +1666,6 @@ public class Transform {
 
 			labelBitStream.position(start[0]);
 			prototype.fromBitStream(labelBitStream, source[0]);
-			prototype.toBitStream(labelObs, target[0]);
 
 			for(int i = 1; i < n; i++) {
 				if (source[i] != prevSource) {
@@ -1683,26 +1673,18 @@ public class Transform {
 					batch.writeDelta(target[i]);
 					prevSource = source[i];
 
+					prototype.toBitStream(labelObs, target[i - 1]);
 					labelBitStream.position(start[i]);
 					prototype.fromBitStream(labelBitStream, source[i]);
-
-					lastLabel = labelObs.writtenBits();
-					lastLabel = ((lastLabel >> 3) + 1) << 3;
-
-					prototype.toBitStream(labelObs, target[i]);
 				}
 				else if (target[i] != target[i - 1]) {
 					// We don't write duplicate pairs
 					batch.writeDelta(0);
 					batch.writeDelta(target[i] - target[i - 1] - 1);
 
+					prototype.toBitStream(labelObs, target[i - 1]);
 					labelBitStream.position(start[i]);
 					prototype.fromBitStream(labelBitStream, source[i]);
-
-					lastLabel = labelObs.writtenBits();
-					lastLabel = ((lastLabel >> 3) + 1) << 3;
-
-					prototype.toBitStream(labelObs, target[i]);
 				}
 				else {
 					// Duplicate arcs, overwrite the label with either the new label encountered or merging the two labels.
@@ -1715,12 +1697,10 @@ public class Transform {
 					else {
 						prototype.fromBitStream(labelBitStream, source[i]);
 					}
-
-					// overwrite
-					labelObs.position(lastLabel);
-					prototype.toBitStream(labelObs, target[i - 1]);
 				}
 			}
+
+			prototype.toBitStream(labelObs, target[n - 1]);
 		}
 
 		else batch.writeDelta(0);
