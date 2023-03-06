@@ -1456,21 +1456,22 @@ public class Transform {
 
 			@Override
 			public Label[] labelArray() {
-				sortSuccessors();
+				if (last == -1) throw new IllegalStateException();
+				if (outdegree == -1) sortSuccessors();
 				return super.labelArray();
 			}
 
 			@Override
 			public int[] successorArray() {
 				if (last == -1) throw new IllegalStateException();
-				sortSuccessors();
+				if (outdegree == -1) sortSuccessors();
 				return successor;
 			}
 
 			@Override
 			public LabelledArcIterator successors() {
 				if (last == -1) throw new IllegalStateException();
-				sortSuccessors();
+				if (outdegree == -1) sortSuccessors();
 				return new LabelledArcIterator() {
 					int last = -1;
 
@@ -1511,7 +1512,7 @@ public class Transform {
 				try {
 					if (last == -1) return new InternalArcLabelledNodeIterator(upperBound);
 					else return new InternalArcLabelledNodeIterator(upperBound, batchIbs, labelInputBitStream,
-							refArray.clone(), prevTarget.clone(), inputStreamLength.clone(), last, outdegree, Arrays.copyOf(successor, outdegree), Arrays.copyOf(label, outdegree));
+							refArray.clone(), prevTarget.clone(), inputStreamLength.clone(), last, outdegree(), Arrays.copyOf(successor, outdegree()), Arrays.copyOf(label, outdegree()));
 				}
 				catch (final IOException e) {
 					throw new RuntimeException(e);
