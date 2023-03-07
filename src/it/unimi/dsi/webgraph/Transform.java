@@ -1364,6 +1364,18 @@ public class Transform {
 			}
 
 			@Override
+			public ArcLabelledNodeIterator copy(final int upperBound) {
+				try {
+					if (last == -1) return new InternalArcLabelledNodeIterator(upperBound);
+					else return new InternalArcLabelledNodeIterator(upperBound, batchIbs, labelInputBitStream,
+							refArray.clone(), prevTarget.clone(), inputStreamLength.clone(), last, outdegree(), Arrays.copyOf(successor, outdegree()), Arrays.copyOf(label, outdegree()));
+				}
+				catch (final IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+
+			@Override
 			public int outdegree() {
 				if (last == -1) throw new IllegalStateException();
 				sortSuccessors();
@@ -1423,35 +1435,11 @@ public class Transform {
 				return last;
 			}
 
-			private void sortSuccessors() {
-				// Compute outdegree
-				if (outdegree == -1) {
-					final int numPairs = this.numPairs;
-					// Neither quicksort nor heaps are stable, so we reestablish order here.
-					it.unimi.dsi.fastutil.Arrays.quickSort(0, numPairs, (x, y) -> Integer.compare(successor[x], successor[y]),
-							(x, y) -> {
-								final int t = successor[x];
-								successor[x] = successor[y];
-								successor[y] = t;
-								final Label l = label[x];
-								label[x] = label[y];
-								label[y] = l;
-							});
-
-					if (numPairs != 0) {
-						// Avoid returning the duplicate arcs
-						int p = 0;
-						for (int j = 1; j < numPairs; j++) {
-							if (successor[p] != successor[j]) {
-								successor[++p] = successor[j];
-							} else if (labelMergeStrategy != null) {
-								label[p] = labelMergeStrategy.merge(label[p], label[j]);
-							}
-						}
-						outdegree = p + 1;
-					}
-					else outdegree = 0;
-				}
+			@Override
+			public int[] successorArray() {
+				if (last == -1) throw new IllegalStateException();
+				if (outdegree == -1) sortSuccessors();
+				return successor;
 			}
 
 			@Override
@@ -1459,13 +1447,6 @@ public class Transform {
 				if (last == -1) throw new IllegalStateException();
 				if (outdegree == -1) sortSuccessors();
 				return super.labelArray();
-			}
-
-			@Override
-			public int[] successorArray() {
-				if (last == -1) throw new IllegalStateException();
-				if (outdegree == -1) sortSuccessors();
-				return successor;
 			}
 
 			@Override
@@ -1507,17 +1488,37 @@ public class Transform {
 				}
 			}
 
-			@Override
-			public ArcLabelledNodeIterator copy(final int upperBound) {
-				try {
-					if (last == -1) return new InternalArcLabelledNodeIterator(upperBound);
-					else return new InternalArcLabelledNodeIterator(upperBound, batchIbs, labelInputBitStream,
-							refArray.clone(), prevTarget.clone(), inputStreamLength.clone(), last, outdegree(), Arrays.copyOf(successor, outdegree()), Arrays.copyOf(label, outdegree()));
-				}
-				catch (final IOException e) {
-					throw new RuntimeException(e);
+			private void sortSuccessors() {
+				// Compute outdegree
+				if (outdegree == -1) {
+					final int numPairs = this.numPairs;
+					// Neither quicksort nor heaps are stable, so we reestablish order here.
+					it.unimi.dsi.fastutil.Arrays.quickSort(0, numPairs, (x, y) -> Integer.compare(successor[x], successor[y]),
+							(x, y) -> {
+								final int t = successor[x];
+								successor[x] = successor[y];
+								successor[y] = t;
+								final Label l = label[x];
+								label[x] = label[y];
+								label[y] = l;
+							});
+
+					if (numPairs != 0) {
+						// Avoid returning the duplicate arcs
+						int p = 0;
+						for (int j = 1; j < numPairs; j++) {
+							if (successor[p] != successor[j]) {
+								successor[++p] = successor[j];
+							} else if (labelMergeStrategy != null) {
+								label[p] = labelMergeStrategy.merge(label[p], label[j]);
+							}
+						}
+						outdegree = p + 1;
+					}
+					else outdegree = 0;
 				}
 			}
+
 		}
 
 		@Override
