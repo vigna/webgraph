@@ -835,7 +835,7 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 						"identifiers in order of appearance will be saved with extension \"" + IDS_EXTENSION + "\", " +
 						"unless a translation function has been specified. The labels must be written after each " +
 						"arc, will be interpreted as integers and stored in gamma coding unless a mapping function " +
-						"has been specified alongside a label prototype. The underlying representation of the labels " +
+						"has been specified, alongside a label prototype. The underlying representation of the labels " +
 						"will be saved as the given basename with the \"" + UNDERLYINGGRAPH_SUFFIX + "\" suffix.",
 				new Parameter[]{
 						new FlaggedOption("logInterval", JSAP.LONG_PARSER, Long.toString(ProgressLogger.DEFAULT_LOG_INTERVAL), JSAP.NOT_REQUIRED, 'l', "log-interval", "The minimum time interval between activity logs in milliseconds."),
@@ -852,10 +852,10 @@ public class ScatteredLabelledArcsASCIIGraph extends ImmutableSequentialGraph {
 						new FlaggedOption("maxRefCount", JSAP.INTEGER_PARSER, String.valueOf(BVGraph.DEFAULT_MAX_REF_COUNT), JSAP.NOT_REQUIRED, 'm', "max-ref-count", "Maximum number of backward references (-1 for ∞)."),
 						new FlaggedOption("minIntervalLength", JSAP.INTEGER_PARSER, String.valueOf(BVGraph.DEFAULT_MIN_INTERVAL_LENGTH), JSAP.NOT_REQUIRED, 'i', "min-interval-length", "Minimum length of an interval (0 to disable)."),
 						new FlaggedOption("zetaK", JSAP.INTEGER_PARSER, String.valueOf(BVGraph.DEFAULT_ZETA_K), JSAP.NOT_REQUIRED, 'k', "zeta-k", "The k parameter for zeta-k codes."),
-						new FlaggedOption("labelPrototype", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'p', "label-prototype", "The prototype of the labels"),
-						new FlaggedOption("labelMapping", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'a', "label-mapping", "A serialised function from strings to the given label prototype that will be used to translate label strings to label object."),
-						new FlaggedOption("labelMergeStrategy", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'e', "label-merge-strategy", "A serialized LabelMergeStrategy object defining how to tread duplicater arcs with the same label."),
-						new UnflaggedOption("basename", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The basename of the output graph"),
+						new FlaggedOption("labelPrototype", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'p', "label-prototype", "The prototype of the labels."),
+						new FlaggedOption("labelMapping", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'a', "label-mapping", "A serialised function from strings to the given label prototype that will be used to translate label strings to label objects."),
+						new FlaggedOption("labelMergeStrategy", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.NOT_REQUIRED, 'e', "label-merge-strategy", "A serialized LabelMergeStrategy object defining how to tread duplicated arcs with the same label."),
+						new UnflaggedOption("basename", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The basename of the output graph."),
 				}
 		);
 
