@@ -98,7 +98,7 @@ import it.unimi.dsi.webgraph.Transform;
  * on a Budget&rdquo;, by Paolo Boldi, Marco Rosa and Sebastiano Vigna,
  * <i>Proceedings of the 20th international conference on World Wide Web</i>, pages 625&minus;634, ACM, (2011).
  *
- * <p>Incidentally, HyperBall (actually, HyperANF) has been used to show that Facebook has just <a href="http://vigna.dsi.unimi.it/papers.php#BBRFDS">four degrees of separation</a>.
+ * <p>Incidentally, HyperBall (actually, HyperANF) has been used to show that Facebook has just <a href="http://vigna.di.unimi.it/papers.php#BBRFDS">four degrees of separation</a>.
  *
  * <p>At step <var>t</var>, for each node we (approximately) keep track (using {@linkplain HyperLogLogCounterArray HyperLogLog counters})
  * of the set of nodes at distance at most <var>t</var>. At each iteration, the sets associated with the successors of each node are merged,

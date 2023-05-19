@@ -6,7 +6,7 @@
   <name>WebGraph</name>
   <version>${ivy.pom.version}</version>
   <description>WebGraph is a framework to study the web graph. It provides simple ways to manage very large graph, exploiting modern compression techniques.</description>
-  <url>http://webgraph.dsi.unimi.it/</url>
+  <url>http://webgraph.di.unimi.it/</url>
   <licenses>
     <license>
       <name>GNU Lesser General Public License Version 2.1+</name>
