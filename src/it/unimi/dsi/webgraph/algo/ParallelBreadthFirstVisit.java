@@ -17,13 +17,27 @@
 
 package it.unimi.dsi.webgraph.algo;
 
+import java.io.IOException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.martiansoftware.jsap.FlaggedOption;
+import com.martiansoftware.jsap.JSAP;
+import com.martiansoftware.jsap.JSAPException;
+import com.martiansoftware.jsap.JSAPResult;
+import com.martiansoftware.jsap.Parameter;
+import com.martiansoftware.jsap.SimpleJSAP;
+import com.martiansoftware.jsap.Switch;
+import com.martiansoftware.jsap.UnflaggedOption;
+
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.logging.ProgressLogger;
+import it.unimi.dsi.webgraph.ArrayListMutableGraph;
 import it.unimi.dsi.webgraph.ImmutableGraph;
 import it.unimi.dsi.webgraph.LazyIntIterator;
 
@@ -63,6 +77,8 @@ import it.unimi.dsi.webgraph.LazyIntIterator;
  */
 
 public class ParallelBreadthFirstVisit {
+	private final static Logger LOGGER = LoggerFactory.getLogger(ParallelBreadthFirstVisit.class);
+
 	/** The graph under examination. */
 	public final ImmutableGraph graph;
 	/** The queue of visited nodes. */
@@ -327,5 +343,34 @@ public class ParallelBreadthFirstVisit {
 
 	public int maxDistance() {
 		return cutPoints.size() - 2;
+	}
+
+	public static void main(final String[] arg) throws IOException, InterruptedException, JSAPException {
+
+		final SimpleJSAP jsap = new SimpleJSAP(BetweennessCentrality.class.getName(), "Benchmarks a parallel breadth-first visit.", new Parameter[] {
+				new Switch("expand", 'e', "expand", "Expand the graph to increase speed (no compression)."),
+				new Switch("mapped", 'm', "mapped", "Use loadMapped() to load the graph."),
+				new FlaggedOption("threads", JSAP.INTSIZE_PARSER, "0", JSAP.NOT_REQUIRED, 'T', "threads", "The number of threads to be used. If 0, the number will be estimated automatically."),
+				new FlaggedOption("start", JSAP.INTEGER_PARSER, "0", JSAP.NOT_REQUIRED, 's', "start", "The starting node."),
+				new UnflaggedOption("graphBasename", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The basename of the graph."),
+				new UnflaggedOption("rankFilename", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename where the resulting rank (doubles in binary form) are stored.") });
+
+		final JSAPResult jsapResult = jsap.parse(arg);
+		if (jsap.messagePrinted()) System.exit(1);
+
+		final boolean mapped = jsapResult.getBoolean("mapped", false);
+		final String graphBasename = jsapResult.getString("graphBasename");
+		final String rankFilename = jsapResult.getString("rankFilename");
+		final int threads = jsapResult.getInt("threads");
+		final int start = jsapResult.getInt("start");
+		final ProgressLogger progressLogger = new ProgressLogger(LOGGER, "nodes");
+		progressLogger.displayFreeMemory = true;
+		progressLogger.displayLocalSpeed = true;
+
+		ImmutableGraph graph = mapped ? ImmutableGraph.loadMapped(graphBasename, progressLogger) : ImmutableGraph.load(graphBasename, progressLogger);
+		if (jsapResult.userSpecified("expand")) graph = new ArrayListMutableGraph(graph).immutableView();
+
+		final ParallelBreadthFirstVisit parallelBreadthFirstVisit = new ParallelBreadthFirstVisit(graph, threads, mapped, progressLogger);
+		parallelBreadthFirstVisit.visit(start);
 	}
 }
