@@ -949,23 +949,6 @@ public class HyperBall extends HyperLogLogCounterArray implements SafelyCloseabl
 								if (! systolic || counterModified) post = count(t, 0);
 								if (! systolic) neighbourhoodFunctionDelta.add(post);
 
-								if (counterModified) {
-									final long[] prevRegister = expand(prevT);
-									final long[] register = expand(t);
-									long s = 0, snz = 0;
-									int nonzero = 0;
-									for(int p = 0; p < m; p++) {
-										final long r = register[p], pr = prevRegister[p];
-										s += r;
-										if (r != pr) {
-											nonzero++;
-											snz += r;
-										}
-									}
-									s = (s + m / 2) >>> log2m;
-									snz = nonzero == 0 ? 0 : (snz + nonzero / 2) / nonzero;
-								}
-
 								// Here counterModified is true only if the counter was *actually* modified.
 								if (counterModified && (systolic || doCentrality)) {
 									final double pre = count(node);
