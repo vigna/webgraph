@@ -56,15 +56,11 @@ This version of WebGraph is limited to graphs with at most 2³¹ nodes. For
 larger graphs, have a look at the [big
 version](https://github.com/vigna/webgraph-big).
 
----
-
 ## Hadoop
 
 [Helge Holzmann](http://www.helgeholzmann.de/) has developed an [input
 format for Hadoop](https://github.com/helgeho/HadoopWebGraph/) for graphs
 in [BVGraph](docs/it/unimi/dsi/webgraph/BVGraph.html) format.
-
----
 
 ## WebGraph++
 
@@ -75,16 +71,12 @@ want to try. The library exposes a
 [Boost Graph Library](http://www.boost.org/libs/graph/doc/index.html), so
 it is easily integrable with other code.
 
----
-
 ## pyWebgraph
 
 [Massimo Santini](http://santini.di.unimi.it/) has developed a [front-end
 that interfaces Jython with
 WebGraph](http://code.google.com/p/py-web-graph/). It makes exploring
 small portions of very large graphs very easy and interactive.
-
----
 
 # Papers
 
