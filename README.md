@@ -6,7 +6,7 @@ WebGraph is a framework for graph compression aimed at studying web
 graphs. It provides simple ways to manage very large graphs, exploiting
 modern compression techniques. More precisely, it is currently made of:
 
-1.  A set of flat codes, called **ζ codes**, which are particularly
+1.  A set of flat codes, called _ζ codes_, which are particularly
 suitable for storing web graphs (or, in general, integers with power-law
 distribution in a certain exponent range). The fact that these codes work
 well can be easily tested empirically, but we also try to provide a
@@ -25,13 +25,13 @@ decompressing it, using lazy techniques that delay the decompression until
 it is actually necessary.
 
 4.  Algorithms for analysing very large graphs, such as
-[HyperBall](http://webgraph.di.unimi.it/docs/it/unimi/dsi/webgraph/algo/HyperBall.html),
+[HyperBall](http://vigna.di.unimi.it/papers.php#BoVHB)
 which has been used to show that Facebook has just [four degrees of
 separation](http://vigna.di.unimi.it/papers.php#BBRFDS).
 
-5.  A complete, [documented](docs) implementation of the algorithms above
-in Java and [Rust](https://www.rust-lang.org/) distributed under either
-the [GNU Lesser General Public License
+5.  An implementation of the algorithms above in Java and
+[Rust](https://www.rust-lang.org/) distributed under either the [GNU
+Lesser General Public License
 2.1+](https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html) or the
 [Apache Software License
 2.0](https://www.apache.org/licenses/LICENSE-2.0). Besides a clearly
@@ -52,7 +52,7 @@ You are welcome to use and improve WebGraph! If you find our software
 useful for your research, please quote [this
 paper](http://vigna.di.unimi.it/papers.php#BoVWFI).
 
-This version of WebGraph is limited to graphs with at most 2^31 nodes. For
+This version of WebGraph is limited to graphs with at most 2³¹ nodes. For
 larger graphs, have a look at the [big
 version](https://github.com/vigna/webgraph-big).
 
