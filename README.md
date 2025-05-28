@@ -1,5 +1,7 @@
 # Welcome to WebGraph!
 
+[![Maven Central](https://img.shields.io/maven-central/v/it.unimi.dsi/webgraph.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22it.unimi.dsi%22%20AND%20a:%22webgraph%22)
+
 ## Introduction
 
 WebGraph is a framework for graph compression aimed at studying web
