@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"it.unimi.dsi.webgraph"},{"l":"it.unimi.dsi.webgraph.algo"},{"l":"it.unimi.dsi.webgraph.examples"},{"l":"it.unimi.dsi.webgraph.jung"},{"l":"it.unimi.dsi.webgraph.labelling"},{"l":"it.unimi.dsi.webgraph.test"}];updateSearchResults();
