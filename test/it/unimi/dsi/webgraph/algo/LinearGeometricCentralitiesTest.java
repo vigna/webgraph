@@ -20,14 +20,12 @@ package it.unimi.dsi.webgraph.algo;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.junit.Test;
 
 import it.unimi.dsi.webgraph.ArrayListMutableGraph;
 import it.unimi.dsi.webgraph.ImmutableGraph;
 import it.unimi.dsi.webgraph.Transform;
-import it.unimi.dsi.webgraph.algo.LinearGeometricCentrality.PowerLawCoefficients;
 import it.unimi.dsi.webgraph.examples.ErdosRenyiGraph;
 
 
