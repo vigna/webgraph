@@ -70,16 +70,45 @@ import it.unimi.dsi.webgraph.LazyIntIterator;
 public class LinearGeometricCentrality {
 	private final static Logger LOGGER = LoggerFactory.getLogger(LinearGeometricCentrality.class);
 
+	/** Corresponds to the sequence of coefficients [0, 1/1, 1/2,  1/3, &hellip;] */
 	final static public class HarmonicCoefficients implements Int2DoubleFunction {
 		@Override
-		public double get(int key) {
-			if (key == 0) {
+		public double get(int distance) {
+			if (distance == 0) {
 				return 0;
 			}
-			return 1. / key;
+			return 1. / distance;
 		}
 	}
-	
+
+	/** Given an exponent &gamma; corresponds to the sequence of coefficients [0<sup>&gamma;</sup>, 1<sup>&gamma;</sup>, 2<sup>&gamma;</sup>, 3<sup>&gamma;</sup>, &hellip;] */
+	final static public class PowerLawCoefficients implements Int2DoubleFunction {
+		private double exponent;
+
+		public PowerLawCoefficients(final double exponent) {
+			this.exponent = exponent;
+		}
+		
+		@Override
+		public double get(int distance) {
+			return Math.pow(distance, exponent);
+		}
+	}
+
+	/** Given a base &beta; corresponds to the sequence of coefficients [&beta;<sup>0</sup>, &beta;<sup>1</sup>, &beta;<sup>2</sup>, &beta;<sup>3</sup>, &hellip;] */
+	final static public class ExponentialCoefficients implements Int2DoubleFunction {
+		private double base;
+
+		public ExponentialCoefficients(final double base) {
+			this.base = base;
+		}
+		
+		@Override
+		public double get(int distance) {
+			return Math.pow(base, distance);
+		}
+	}
+
 	/** The graph under examination. */
 	private final ImmutableGraph graph;
 	/** The function returning for every natural number the corresponding coefficient. */
@@ -222,6 +251,8 @@ public class LinearGeometricCentrality {
 		}
 		finally {
 			executorService.shutdown();
+			final double zeroContribution = coeffs.applyAsDouble(0);
+			for (int i = 0; i < centrality.length; i++) centrality[i] += zeroContribution;  // Node itself is not considered
 		}
 
 		if (pl != null) pl.done();

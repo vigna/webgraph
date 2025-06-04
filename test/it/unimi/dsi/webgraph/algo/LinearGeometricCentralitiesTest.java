@@ -27,6 +27,7 @@ import org.junit.Test;
 import it.unimi.dsi.webgraph.ArrayListMutableGraph;
 import it.unimi.dsi.webgraph.ImmutableGraph;
 import it.unimi.dsi.webgraph.Transform;
+import it.unimi.dsi.webgraph.algo.LinearGeometricCentrality.PowerLawCoefficients;
 import it.unimi.dsi.webgraph.examples.ErdosRenyiGraph;
 
 
@@ -69,4 +70,39 @@ public class LinearGeometricCentralitiesTest {
 			}
 		}
 	}
+
+	@Test
+	public void testErdosRenyiBis() throws IOException, InterruptedException {
+		for(final int size: new int[] { 10, 100 }) {
+			for(final double density: new double[] { 0.0001, 0.001, 0.01 }) {
+				final ImmutableGraph g = new ArrayListMutableGraph(new ErdosRenyiGraph(size, density, 0, false)).immutableView();
+				LinearGeometricCentrality linear = new LinearGeometricCentrality(g, new LinearGeometricCentrality.PowerLawCoefficients(0));
+				linear.compute();
+
+				for(int i = 0; i < size; i++) 
+					assertEquals(linear.reachable[i], linear.centrality[i], 1E-3);
+
+				final GeometricCentralities centralities = new GeometricCentralities(g);
+				centralities.compute(); 
+				linear = new LinearGeometricCentrality(g, x->-x);  // Negative peripherality
+				linear.compute();
+				for(int i = 0; i < size; i++) {
+					if (centralities.closeness[i] != 0)
+						assertEquals(-1.0 / centralities.closeness[i], linear.centrality[i], 1E-3);
+					else
+						assertEquals(centralities.closeness[i], 0, 1E-3);
+				}
+				
+				linear = new LinearGeometricCentrality(g, new LinearGeometricCentrality.ExponentialCoefficients(1));
+				linear.compute();
+
+				for(int i = 0; i < size; i++) 
+					assertEquals(linear.reachable[i], linear.centrality[i], 1E-3);
+
+
+
+			}
+		}
+	}
+
 }

@@ -1,6 +1,10 @@
 it.unimi.dsi.webgraph
 it.unimi.dsi.webgraph.algo
+it.unimi.dsi.webgraph.cosin
 it.unimi.dsi.webgraph.examples
 it.unimi.dsi.webgraph.jung
 it.unimi.dsi.webgraph.labelling
+it.unimi.dsi.webgraph.scratch
 it.unimi.dsi.webgraph.test
+it.unimi.dsi.webgraph.tool
+it.unimi.dsi.webgraph.webbase
