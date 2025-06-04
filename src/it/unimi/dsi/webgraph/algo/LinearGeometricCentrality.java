@@ -267,7 +267,7 @@ public class LinearGeometricCentrality {
 			new Switch("mapped", 'm', "mapped", "Use loadMapped() to load the graph."),
 			new FlaggedOption("threads", JSAP.INTSIZE_PARSER, "0", JSAP.NOT_REQUIRED, 'T', "threads", "The number of threads to be used. If 0, the number will be estimated automatically."),
 			new UnflaggedOption("graphBasename", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The basename of the graph."),
-			new UnflaggedOption("coefficientsSpec", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The coefficient class spec (CLASSNAME or CLASSNAME(arg,...)."),
+			new UnflaggedOption("coefficientsSpec", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The coefficient class spec: CLASSNAME or CLASSNAME(arg,...)."),
 			new UnflaggedOption("centralityFilename", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename where centrality scores (doubles in binary form) will be stored."),
 			new UnflaggedOption("reachableFilename", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The filename where the number of reachable nodes (longs in binary form) will be stored.")
 		}
@@ -281,12 +281,14 @@ public class LinearGeometricCentrality {
 		if (coefficientsSpec.contains("(")) {
 			int opp = coefficientsSpec.indexOf("(");
 			String className = coefficientsSpec.substring(0, opp);
-			String[] args = coefficientsSpec.substring(opp, coefficientsSpec.length() - 1).split(",");
-			double[] doubleArgs = java.util.Arrays.stream(args).mapToDouble(Double::parseDouble).toArray();
-			Class<?>[] parameterTypes = new Class<?>[doubleArgs.length];
+			String[] args = coefficientsSpec.substring(opp + 1, coefficientsSpec.length() - 1).split(",");
+			System.out.println(className);
+			Object[] boxedDoubleArgs = java.util.Arrays.stream(args).mapToDouble(Double::parseDouble).boxed().toArray();
+			
+			Class<?>[] parameterTypes = new Class<?>[boxedDoubleArgs.length];
 			Arrays.fill(parameterTypes, double.class);
 			Constructor<?> constructor = Class.forName(className).getConstructor(parameterTypes);
-			coeffs = (IntToDoubleFunction) constructor.newInstance(doubleArgs);
+			coeffs = (IntToDoubleFunction) constructor.newInstance(boxedDoubleArgs);
 		} else {
 			Constructor<?> constructor = Class.forName(coefficientsSpec).getConstructor();
 			coeffs = (IntToDoubleFunction) constructor.newInstance();
