@@ -1,3 +1,7 @@
+3.6.12
+
+- New class LinearGeometricCentrality.
+
 3.6.11
 
 - BidirectionalImmutableGraph has been ported from the big version.
