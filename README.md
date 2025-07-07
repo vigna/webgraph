@@ -59,6 +59,11 @@ This version of WebGraph is limited to graphs with at most 2³¹ nodes. For
 larger graphs, have a look at the [big
 version](https://github.com/vigna/webgraph-big).
 
+## JGraphT
+
+<a href="https://jgrapht.org/">JgraphT</a> has a 
+few <a hreef="https://jgrapht.org/guide/WebGraphAdapters">WebGraph adapters</a>.
+
 ## Hadoop
 
 [Helge Holzmann](http://www.helgeholzmann.de/) has developed an [input
