@@ -61,7 +61,7 @@ version](https://github.com/vigna/webgraph-big).
 
 ## JGraphT
 
-<a href="https://jgrapht.org/">JgraphT</a> has a 
+<a href="https://jgrapht.org/">JGraphT</a> has a 
 few <a href="https://jgrapht.org/guide/WebGraphAdapters">WebGraph adapters</a>.
 
 ## Hadoop
