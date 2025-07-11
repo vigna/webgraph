@@ -17,12 +17,7 @@
 
 package it.unimi.dsi.webgraph;
 
-import java.io.BufferedOutputStream;
-import java.io.DataInput;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -1199,7 +1194,7 @@ public class Transform {
 					final int numPairs = this.numPairs;
 					// Neither quicksort nor heaps are stable, so we reestablish order here.
 					IntArrays.quickSort(successor, 0, numPairs);
-					if (numPairs!= 0) {
+					if (numPairs != 0) {
 						int p = 0;
 						for (int j = 1; j < numPairs; j++) if (successor[p] != successor[j]) successor[++p] = successor[j];
 						outdegree = p + 1;
@@ -1271,6 +1266,290 @@ public class Transform {
 	}
 
 
+	public static class ArcLabelledBatchGraph extends ArcLabelledImmutableSequentialGraph {
+		private final int n;
+		private final long numArcs;
+		private final ObjectArrayList<File> batches;
+		private final ObjectArrayList<File> labelBatches;
+		private final Label prototype;
+		private final LabelMergeStrategy labelMergeStrategy;
+
+		public ArcLabelledBatchGraph(int n, long numArcs, ObjectArrayList<File> batches, ObjectArrayList<File> labelBatches, Label prototype, final LabelMergeStrategy labelMergeStrategy) {
+			this.n = n;
+			this.numArcs = numArcs;
+			this.batches = batches;
+			this.labelBatches = labelBatches;
+			this.prototype = prototype;
+			this.labelMergeStrategy = labelMergeStrategy;
+		}
+
+		@Override
+		public int numNodes() { return n; }
+		@Override
+		public long numArcs() { return numArcs; }
+		@Override
+		public boolean hasCopiableIterators() { return true; }
+
+		class InternalArcLabelledNodeIterator extends ArcLabelledNodeIterator {
+			/** The buffer size. We can't make it too big&mdash;there's two per batch, per thread. */
+			private static final int STD_BUFFER_SIZE = 64 * 1024;
+			private final int[] refArray;
+			private final InputBitStream[] batchIbs;
+			private final InputBitStream[] labelInputBitStream;
+			private final int[] inputStreamLength;
+			private final int[] prevTarget;
+
+			// The indirect queue used to merge the batches.
+			private final IntHeapSemiIndirectPriorityQueue queue;
+			/** The limit for {@link #hasNext()}. */
+			private final int hasNextLimit;
+
+			/** The last returned node (-1 if no node has been returned yet). */
+			private int last;
+			/** The outdegree of the current node (valid if {@link #last} is not -1). */
+			private int outdegree;
+			/** The number of pairs associated with the current node (valid if {@link #last} is not -1). */
+			private int numPairs;
+			/** The successors of the current node (valid if {@link #last} is not -1);
+			 * only the first {@link #outdegree} entries are meaningful. */
+			private int[] successor;
+			/** The labels of the arcs going out of the current node (valid if {@link #last} is not -1);
+			 * only the first {@link #outdegree} entries are meaningful. */
+			private Label[] label;
+
+			public InternalArcLabelledNodeIterator(final int upperBound) throws IOException {
+				this(upperBound, null, null, null, null, null, -1, -1, IntArrays.EMPTY_ARRAY, Label.EMPTY_LABEL_ARRAY);
+			}
+
+			public InternalArcLabelledNodeIterator(final int upperBound, final InputBitStream[] baseIbs, final InputBitStream[] baseLabelInputBitStream, final int[] refArray, final int[] prevTarget, final int[] inputStreamLength, final int last, final int outdegree, final int successor[], final Label[] label) throws IOException {
+				this.hasNextLimit = Math.min(n, upperBound) - 1;
+				this.last = last;
+				this.outdegree = outdegree;
+				this.successor = successor;
+				this.label = label;
+				batchIbs = new InputBitStream[batches.size()];
+				labelInputBitStream = new InputBitStream[batches.size()];
+
+				if (refArray == null) {
+					this.refArray = new int[batches.size()];
+					this.prevTarget = new int[batches.size()];
+					this.inputStreamLength = new int[batches.size()];
+					Arrays.fill(this.prevTarget, -1);
+					queue = new IntHeapSemiIndirectPriorityQueue(this.refArray);
+					// We open all files and load the first element into the reference array.
+					for(int i = 0; i < batches.size(); i++) {
+						batchIbs[i] = new InputBitStream(batches.get(i), STD_BUFFER_SIZE);
+						labelInputBitStream[i] = new InputBitStream(labelBatches.get(i), STD_BUFFER_SIZE);
+						this.inputStreamLength[i] = batchIbs[i].readDelta();
+						this.refArray[i] = batchIbs[i].readDelta();
+						queue.enqueue(i);
+					}
+				}
+				else {
+					this.refArray = refArray;
+					this.prevTarget = prevTarget;
+					this.inputStreamLength = inputStreamLength;
+					queue = new IntHeapSemiIndirectPriorityQueue(refArray);
+
+					for(int i = 0; i < refArray.length; i++) {
+						if (baseIbs[i] != null) {
+							batchIbs[i] = new InputBitStream(batches.get(i), STD_BUFFER_SIZE);
+							batchIbs[i].position(baseIbs[i].position());
+							labelInputBitStream[i] = new InputBitStream(labelBatches.get(i), STD_BUFFER_SIZE);
+							labelInputBitStream[i].position(baseLabelInputBitStream[i].position());
+							queue.enqueue(i);
+						}
+					}
+				}
+			}
+
+			@Override
+			public ArcLabelledNodeIterator copy(final int upperBound) {
+				try {
+					if (last == -1) return new InternalArcLabelledNodeIterator(upperBound);
+					else return new InternalArcLabelledNodeIterator(upperBound, batchIbs, labelInputBitStream,
+							refArray.clone(), prevTarget.clone(), inputStreamLength.clone(), last, outdegree(), Arrays.copyOf(successor, outdegree()), Arrays.copyOf(label, outdegree()));
+				}
+				catch (final IOException e) {
+					throw new RuntimeException(e);
+				}
+			}
+
+			@Override
+			public int outdegree() {
+				if (last == -1) throw new IllegalStateException();
+				sortSuccessors();
+				return outdegree;
+			}
+
+			@Override
+			public boolean hasNext() {
+				return last < hasNextLimit;
+			}
+
+			@Override
+			public int nextInt() {
+				if (! hasNext()) throw new NoSuchElementException();
+				last++;
+				int d = 0;
+				outdegree = -1;
+				int i;
+
+				try {
+					/* We extract elements from the queue as long as their target is equal
+					 * to last. If during the process we exhaust a batch, we close it. */
+
+					while(! queue.isEmpty() && refArray[i = queue.first()] == last) {
+						successor = IntArrays.grow(successor, d + 1);
+						successor[d] = (prevTarget[i] += batchIbs[i].readDelta() + 1);
+						label = ObjectArrays.grow(label, d + 1);
+						label[d] = prototype.copy();
+						label[d].fromBitStream(labelInputBitStream[i], last);
+
+						if (--inputStreamLength[i] == 0) {
+							queue.dequeue();
+							batchIbs[i].close();
+							batchIbs[i] = null;
+							labelInputBitStream[i].close();
+							labelInputBitStream[i] = null;
+						}
+						else {
+							// We read a new source and update the queue.
+							final int sourceDelta = batchIbs[i].readDelta();
+							if (sourceDelta != 0) {
+								refArray[i] += sourceDelta;
+								prevTarget[i] = -1;
+								queue.changed();
+							}
+						}
+						d++;
+					}
+
+					numPairs = d;
+				}
+				catch(final IOException e) {
+					e.printStackTrace();
+					throw new RuntimeException(this + " " + e);
+				}
+
+				return last;
+			}
+
+			@Override
+			public int[] successorArray() {
+				if (last == -1) throw new IllegalStateException();
+				if (outdegree == -1) sortSuccessors();
+				return successor;
+			}
+
+			@Override
+			public Label[] labelArray() {
+				if (last == -1) throw new IllegalStateException();
+				if (outdegree == -1) sortSuccessors();
+				return super.labelArray();
+			}
+
+			@Override
+			public LabelledArcIterator successors() {
+				if (last == -1) throw new IllegalStateException();
+				if (outdegree == -1) sortSuccessors();
+				return new LabelledArcIterator() {
+					int last = -1;
+
+					@Override
+					public Label label() {
+						return label[last];
+					}
+
+					@Override
+					public int nextInt() {
+						if (last + 1 == outdegree) return -1;
+						return successor[++last];
+					}
+
+					@Override
+					public int skip(final int k) {
+						final int toSkip = Math.min(k, outdegree - last - 1);
+						last += toSkip;
+						return toSkip;
+					}
+				};
+			}
+
+			@SuppressWarnings("deprecation")
+			@Override
+			protected void finalize() throws Throwable {
+				try {
+					for(final InputBitStream ibs: batchIbs) if (ibs != null) ibs.close();
+					for(final InputBitStream ibs: labelInputBitStream) if (ibs != null) ibs.close();
+				}
+				finally {
+					super.finalize();
+				}
+			}
+
+			private void sortSuccessors() {
+				// Compute outdegree
+				if (outdegree == -1) {
+					final int numPairs = this.numPairs;
+					// Neither quicksort nor heaps are stable, so we reestablish order here.
+					it.unimi.dsi.fastutil.Arrays.quickSort(0, numPairs, (x, y) -> Integer.compare(successor[x], successor[y]),
+							(x, y) -> {
+								final int t = successor[x];
+								successor[x] = successor[y];
+								successor[y] = t;
+								final Label l = label[x];
+								label[x] = label[y];
+								label[y] = l;
+							});
+
+					if (numPairs != 0) {
+						// Avoid returning the duplicate arcs
+						int p = 0;
+						for (int j = 1; j < numPairs; j++) {
+							if (successor[p] != successor[j]) {
+								successor[++p] = successor[j];
+							} else if (labelMergeStrategy != null) {
+								label[p] = labelMergeStrategy.merge(label[p], label[j]);
+							}
+						}
+						outdegree = p + 1;
+					}
+					else outdegree = 0;
+				}
+			}
+
+		}
+
+		@Override
+		public ArcLabelledNodeIterator nodeIterator() {
+			try {
+				return new InternalArcLabelledNodeIterator(Integer.MAX_VALUE);
+			}
+			catch (final IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+		@SuppressWarnings("deprecation")
+		@Override
+		protected void finalize() throws Throwable {
+			try {
+				for(final File f : batches) f.delete();
+				for(final File f : labelBatches) f.delete();
+			}
+			finally {
+				super.finalize();
+			}
+		}
+
+		@Override
+		public Label prototype() {
+			return prototype;
+		}
+	}
+
+
 	/** Sorts the given source and target arrays w.r.t. the target and stores them in a temporary file.
 	 *
 	 * @param n the index of the last element to be sorted (exclusive).
@@ -1319,79 +1598,114 @@ public class Transform {
 		return u;
 	}
 
-	/** Sorts the given source and target arrays w.r.t. the target and stores them in two temporary files.
-	 *  An additional positionable input bit stream is provided that contains labels, starting at given positions.
-	 *  Labels are also written onto the appropriate file.
+	/**
+	 * Sorts the given source and target arrays w.r.t. the target and stores them in two temporary files. An additional
+	 * positionable input bit stream is provided that contains labels, starting at given positions. Labels are also
+	 * written onto the appropriate file.
 	 *
 	 * @param n the index of the last element to be sorted (exclusive).
 	 * @param source the source array.
 	 * @param target the target array.
-	 * @param start the array containing the bit position (within the given input stream) where the label of the arc starts.
+	 * @param start the array containing the bit position (within the given input stream) where the label of the arc
+	 * 		starts.
 	 * @param labelBitStream the positionable bit stream containing the labels.
 	 * @param tempDir a temporary directory where to store the sorted arrays.
 	 * @param batches a list of files to which the batch file will be added.
 	 * @param labelBatches a list of files to which the label batch file will be added.
+	 * @param labelMergeStrategy
+	 * @return the number of pairs in the batch (might be less than <code>n</code> because duplicates are eliminated).
 	 */
 
-	private static void processTransposeBatch(final int n, final int[] source, final int[] target, final long[] start,
-			final InputBitStream labelBitStream, final File tempDir, final List<File> batches, final List<File> labelBatches,
-			final Label prototype) throws IOException {
+	public static int processTransposeBatch(final int n, final int[] source, final int[] target, final long[] start,
+	                                        final InputBitStream labelBitStream, final File tempDir, final List<File> batches, final List<File> labelBatches,
+	                                        Label prototype, final LabelMergeStrategy labelMergeStrategy) throws IOException {
 		it.unimi.dsi.fastutil.Arrays.parallelQuickSort(0, n, (x,y) -> {
-			final int t = Integer.compare(source[x], source[y]);
-			if (t != 0) return t;
-			return Integer.compare(target[x], target[y]);
-			},
-		(x, y) -> {
-			int t = source[x];
-			source[x] = source[y];
-			source[y] = t;
-			t = target[x];
-			target[x] = target[y];
-			target[y] = t;
-			final long u = start[x];
-			start[x] = start[y];
-			start[y] = u;
-		});
+					final int t = Integer.compare(source[x], source[y]);
+					if (t != 0) return t;
+					return Integer.compare(target[x], target[y]);
+				},
+				(x, y) -> {
+					int t = source[x];
+					source[x] = source[y];
+					source[y] = t;
+					t = target[x];
+					target[x] = target[y];
+					target[y] = t;
+					final long u = start[x];
+					start[x] = start[y];
+					start[y] = u;
+				});
 
 		final File batchFile = File.createTempFile("batch", ".bitstream", tempDir);
 		batchFile.deleteOnExit();
 		batches.add(batchFile);
 		final OutputBitStream batch = new OutputBitStream(batchFile);
 
+		final File labelFile = File.createTempFile("label-", ".bits", tempDir);
+		labelFile.deleteOnExit();
+		labelBatches.add(labelFile);
+		final OutputBitStream labelObs = new OutputBitStream(labelFile);
+
+		// Used to handle duplicate arcs with different labels
+		final Label otherPrototype = prototype.copy();
+
+		int u = 0;
+
 		if (n != 0) {
 			// Compute unique pairs
-			batch.writeDelta(n);
+			u = 1;
+			for(int i = n - 1; i-- != 0;) if (source[i] != source[i + 1] || target[i] != target[i + 1]) u++;
+			batch.writeDelta(u);
+
 			int prevSource = source[0];
 			batch.writeDelta(prevSource);
 			batch.writeDelta(target[0]);
+
+			labelBitStream.position(start[0]);
+			prototype.fromBitStream(labelBitStream, source[0]);
 
 			for(int i = 1; i < n; i++) {
 				if (source[i] != prevSource) {
 					batch.writeDelta(source[i] - prevSource);
 					batch.writeDelta(target[i]);
 					prevSource = source[i];
+
+					prototype.toBitStream(labelObs, target[i - 1]);
+					labelBitStream.position(start[i]);
+					prototype.fromBitStream(labelBitStream, source[i]);
 				}
 				else if (target[i] != target[i - 1]) {
 					// We don't write duplicate pairs
 					batch.writeDelta(0);
 					batch.writeDelta(target[i] - target[i - 1] - 1);
+
+					prototype.toBitStream(labelObs, target[i - 1]);
+					labelBitStream.position(start[i]);
+					prototype.fromBitStream(labelBitStream, source[i]);
+				}
+				else {
+					// Duplicate arcs, overwrite the label with either the new label encountered or merging the two labels.
+					labelBitStream.position(start[i]);
+
+					if (labelMergeStrategy != null) {
+						otherPrototype.fromBitStream(labelBitStream, source[i]);
+						prototype = labelMergeStrategy.merge(otherPrototype, prototype);
+					}
+					else {
+						prototype.fromBitStream(labelBitStream, source[i]);
+					}
 				}
 			}
+
+			prototype.toBitStream(labelObs, target[n - 1]);
 		}
+
 		else batch.writeDelta(0);
 
 		batch.close();
-
-		final File labelFile = File.createTempFile("label-", ".bits", tempDir);
-		labelFile.deleteOnExit();
-		labelBatches.add(labelFile);
-		final OutputBitStream labelObs = new OutputBitStream(labelFile);
-		for (int i = 0; i < n; i++) {
-			labelBitStream.position(start[i]);
-			prototype.fromBitStream(labelBitStream, source[i]);
-			prototype.toBitStream(labelObs, target[i]);
-		}
 		labelObs.close();
+
+		return u;
 	}
 
 	/** Returns an immutable graph obtained by reversing all arcs in <code>g</code>, using an offline method.
@@ -1701,7 +2015,7 @@ public class Transform {
 
 				if (j == batchSize) {
 					obs.flush();
-					processTransposeBatch(batchSize, source, target, start, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype);
+					processTransposeBatch(batchSize, source, target, start, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype, null);
 					fbos = new FastByteArrayOutputStream();
 					obs = new OutputBitStream(fbos); //ALERT here we should re-use
 					j = 0;
@@ -1714,7 +2028,7 @@ public class Transform {
 
 		if (j != 0) {
 			obs.flush();
-			processTransposeBatch(j, source, target, start, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype);
+			processTransposeBatch(j, source, target, start, new InputBitStream(fbos.array), tempDir, batches, labelBatches, prototype, null);
 		}
 
 		if (pl != null) {
@@ -1725,238 +2039,9 @@ public class Transform {
 		final long numArcs = m;
 
 		// Now we return an immutable graph whose nodeIterator() merges the batches on the fly.
-		return new ArcLabelledImmutableSequentialGraph() {
-			@Override
-			public int numNodes() { return n; }
-			@Override
-			public long numArcs() { return numArcs; }
-			@Override
-			public boolean hasCopiableIterators() { return true; }
-
-			class InternalArcLabelledNodeIterator extends ArcLabelledNodeIterator {
-				/** The buffer size. We can't make it too big&mdash;there's two per batch, per thread. */
-				private static final int STD_BUFFER_SIZE = 64 * 1024;
-				private final int[] refArray;
-				private final InputBitStream[] batchIbs;
-				private final InputBitStream[] labelInputBitStream;
-				private final int[] inputStreamLength;
-				private final int[] prevTarget;
-
-				// The indirect queue used to merge the batches.
-				private final IntHeapSemiIndirectPriorityQueue queue;
-				/** The limit for {@link #hasNext()}. */
-				private final int hasNextLimit;
-
-				/** The last returned node (-1 if no node has been returned yet). */
-				private int last;
-				/** The outdegree of the current node (valid if {@link #last} is not -1). */
-				private int outdegree;
-				/** The successors of the current node (valid if {@link #last} is not -1);
-				 * only the first {@link #outdegree} entries are meaningful. */
-				private int[] successor;
-				/** The labels of the arcs going out of the current node (valid if {@link #last} is not -1);
-				 * only the first {@link #outdegree} entries are meaningful. */
-				private Label[] label;
-
-				public InternalArcLabelledNodeIterator(final int upperBound) throws IOException {
-					this(upperBound, null, null, null, null, null, -1, 0, IntArrays.EMPTY_ARRAY, Label.EMPTY_LABEL_ARRAY);
-				}
-
-				public InternalArcLabelledNodeIterator(final int upperBound, final InputBitStream[] baseIbs, final InputBitStream[] baseLabelInputBitStream, final int[] refArray, final int[] prevTarget, final int[] inputStreamLength, final int last, final int outdegree, final int successor[], final Label[] label) throws IOException {
-					this.hasNextLimit = Math.min(n, upperBound) - 1;
-					this.last = last;
-					this.outdegree = outdegree;
-					this.successor = successor;
-					this.label = label;
-					batchIbs = new InputBitStream[batches.size()];
-					labelInputBitStream = new InputBitStream[batches.size()];
-
-					if (refArray == null) {
-						this.refArray = new int[batches.size()];
-						this.prevTarget = new int[batches.size()];
-						this.inputStreamLength = new int[batches.size()];
-						Arrays.fill(this.prevTarget, -1);
-						queue = new IntHeapSemiIndirectPriorityQueue(this.refArray);
-						// We open all files and load the first element into the reference array.
-						for(int i = 0; i < batches.size(); i++) {
-							batchIbs[i] = new InputBitStream(batches.get(i), STD_BUFFER_SIZE);
-							labelInputBitStream[i] = new InputBitStream(labelBatches.get(i), STD_BUFFER_SIZE);
-							this.inputStreamLength[i] = batchIbs[i].readDelta();
-							this.refArray[i] = batchIbs[i].readDelta();
-							queue.enqueue(i);
-						}
-					}
-					else {
-						this.refArray = refArray;
-						this.prevTarget = prevTarget;
-						this.inputStreamLength = inputStreamLength;
-						queue = new IntHeapSemiIndirectPriorityQueue(refArray);
-
-						for(int i = 0; i < refArray.length; i++) {
-							if (baseIbs[i] != null) {
-								batchIbs[i] = new InputBitStream(batches.get(i), STD_BUFFER_SIZE);
-								batchIbs[i].position(baseIbs[i].position());
-								labelInputBitStream[i] = new InputBitStream(labelBatches.get(i), STD_BUFFER_SIZE);
-								labelInputBitStream[i].position(baseLabelInputBitStream[i].position());
-								queue.enqueue(i);
-							}
-						}
-					}
-				}
-
-				@Override
-				public int outdegree() {
-					if (last == -1) throw new IllegalStateException();
-					return outdegree;
-				}
-
-				@Override
-				public boolean hasNext() {
-					return last < hasNextLimit;
-				}
-
-				@Override
-				public int nextInt() {
-					last++;
-					int d = 0;
-					int i;
-
-					try {
-						/* We extract elements from the queue as long as their target is equal
-						 * to last. If during the process we exhaust a batch, we close it. */
-
-						while(! queue.isEmpty() && refArray[i = queue.first()] == last) {
-							successor = IntArrays.grow(successor, d + 1);
-							successor[d] = (prevTarget[i] += batchIbs[i].readDelta() + 1);
-							label = ObjectArrays.grow(label, d + 1);
-							label[d] = prototype.copy();
-							label[d].fromBitStream(labelInputBitStream[i], last);
-
-							if (--inputStreamLength[i] == 0) {
-								queue.dequeue();
-								batchIbs[i].close();
-								labelInputBitStream[i].close();
-								batchIbs[i] = null;
-								labelInputBitStream[i] = null;
-							}
-							else {
-								// We read a new source and update the queue.
-								final int sourceDelta = batchIbs[i].readDelta();
-								if (sourceDelta != 0) {
-									refArray[i] += sourceDelta;
-									prevTarget[i] = -1;
-									queue.changed();
-								}
-							}
-							d++;
-						}
-						// Neither quicksort nor heaps are stable, so we reestablish order here.
-						it.unimi.dsi.fastutil.Arrays.quickSort(0, d, (x, y) -> Integer.compare(successor[x], successor[y]),
-						(x, y) -> {
-							final int t = successor[x];
-							successor[x] = successor[y];
-							successor[y] = t;
-							final Label l = label[x];
-							label[x] = label[y];
-							label[y] = l;
-						});
-					}
-					catch(final IOException e) {
-						throw new RuntimeException(e);
-					}
-
-					outdegree = d;
-					return last;
-				}
-
-				@Override
-				public int[] successorArray() {
-					if (last == -1) throw new IllegalStateException();
-					return successor;
-				}
-
-				@SuppressWarnings("deprecation")
-				@Override
-				protected void finalize() throws Throwable {
-					try {
-						for(final InputBitStream ibs: batchIbs) if (ibs != null) ibs.close();
-						for(final InputBitStream ibs: labelInputBitStream) if (ibs != null) ibs.close();
-					}
-					finally {
-						super.finalize();
-					}
-				}
-
-				@Override
-				public LabelledArcIterator successors() {
-					if (last == -1) throw new IllegalStateException();
-					return new LabelledArcIterator() {
-						int last = -1;
-
-						@Override
-						public Label label() {
-							return label[last];
-						}
-
-						@Override
-						public int nextInt() {
-							if (last + 1 == outdegree) return -1;
-							return successor[++last];
-						}
-
-						@Override
-						public int skip(final int k) {
-							final int toSkip = Math.min(k, outdegree - last - 1);
-							last += toSkip;
-							return toSkip;
-						}
-					};
-				}
-
-
-				@Override
-				public ArcLabelledNodeIterator copy(final int upperBound) {
-					try {
-						if (last == -1) return new InternalArcLabelledNodeIterator(upperBound);
-						else return new InternalArcLabelledNodeIterator(upperBound, batchIbs, labelInputBitStream,
-								refArray.clone(), prevTarget.clone(), inputStreamLength.clone(), last, outdegree, Arrays.copyOf(successor, outdegree), Arrays.copyOf(label, outdegree));
-					}
-					catch (final IOException e) {
-						throw new RuntimeException(e);
-					}
-				}
-			}
-
-
-			@Override
-			public ArcLabelledNodeIterator nodeIterator() {
-				try {
-					return new InternalArcLabelledNodeIterator(Integer.MAX_VALUE);
-				}
-				catch (final IOException e) {
-					throw new RuntimeException(e);
-				}
-			}
-
-			@SuppressWarnings("deprecation")
-			@Override
-			protected void finalize() throws Throwable {
-				try {
-					for(final File f : batches) f.delete();
-					for(final File f : labelBatches) f.delete();
-				}
-				finally {
-					super.finalize();
-				}
-			}
-			@Override
-			public Label prototype() {
-				return prototype;
-			}
-
-		};
+		// We don't need a merge strategy because a transposition never introduces duplicates
+		return new ArcLabelledBatchGraph(n, numArcs, batches, labelBatches, prototype, null);
 	}
-
 
 	/** Returns an immutable graph obtained by reversing all arcs in <code>g</code>.
 	 *
@@ -2602,8 +2687,8 @@ public class Transform {
 				"transposeOffline          sourceBasename destBasename [batchSize] [tempDir]\n" +
 				"symmetrize                sourceBasename [transposeBasename] destBasename\n" +
 				"symmetrizeOffline         sourceBasename destBasename [batchSize] [tempDir]\n" +
-						"simplifyOffline           sourceBasename destBasename [batchSize] [tempDir]\n" +
-						"simplify                  sourceBasename transposeBasename destBasename\n" +
+				"simplifyOffline           sourceBasename destBasename [batchSize] [tempDir]\n" +
+				"simplify                  sourceBasename transposeBasename destBasename\n" +
 				"union                     source1Basename source2Basename destBasename [strategy]\n" +
 				"compose                   source1Basename source2Basename destBasename [semiring]\n" +
 				"gray                      sourceBasename destBasename\n" +
@@ -2630,8 +2715,8 @@ public class Transform {
 						new Switch("ascii", 'a', "ascii", "Maps are in ASCII form (one integer per line)."),
 						new UnflaggedOption("transform", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.NOT_GREEDY, "The transformation to be applied."),
 						new UnflaggedOption("param", JSAP.STRING_PARSER, JSAP.NO_DEFAULT, JSAP.REQUIRED, JSAP.GREEDY, "The remaining parameters."),
-					}
-				);
+				}
+		);
 
 		final JSAPResult jsapResult = jsap.parse(args);
 		if (jsap.messagePrinted()) System.exit(1);
