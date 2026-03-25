@@ -300,7 +300,6 @@ public class LinearGeometricCentrality {
 			int opp = coefficientsSpec.indexOf("(");
 			String className = coefficientsSpec.substring(0, opp);
 			String[] args = coefficientsSpec.substring(opp + 1, coefficientsSpec.length() - 1).split(",");
-			System.out.println(className);
 			Object[] boxedDoubleArgs = java.util.Arrays.stream(args).mapToDouble(Double::parseDouble).boxed().toArray();
 
 			Class<?>[] parameterTypes = new Class<?>[boxedDoubleArgs.length];
