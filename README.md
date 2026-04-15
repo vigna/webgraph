@@ -18,7 +18,7 @@ analysis](http://vigna.di.unimi.it/papers.php#BoVCWWW).
 
 2.  Algorithms for compressing web graphs that exploit gap compression and
 referentiation (à la [LINK](https://ieeexplore.ieee.org/document/999950)),
-intervalisation and ζ codes to provide a high compression ratio (see [our
+intervalization and ζ codes to provide a high compression ratio (see [our
 datasets](http://law.di.unimi.it/datasets.php)). The algorithms are
 controlled by several parameters, which provide different tradeoffs
 between access speed and compression ratio.
