@@ -59,32 +59,19 @@ This version of WebGraph is limited to graphs with at most 2³¹ nodes. For
 larger graphs, have a look at the [big
 version](https://github.com/vigna/webgraph-big).
 
+## Users of WebGraph
+
+[![SFW](svg/SWH.svg)](https://www.softwareheritage.org/)
+[![CC](svg/CC.svg)](https://commoncrawl.org/)
+
 ## JGraphT
 
 <a href="https://jgrapht.org/">JGraphT</a> has a 
 few <a href="https://jgrapht.org/guide/WebGraphAdapters">WebGraph adapters</a>.
 
-## Hadoop
+## Python
 
-[Helge Holzmann](http://www.helgeholzmann.de/) has developed an [input
-format for Hadoop](https://github.com/helgeho/HadoopWebGraph/) for graphs
-in [BVGraph](docs/it/unimi/dsi/webgraph/BVGraph.html) format.
-
-## WebGraph++
-
-Jacob Ratkievicz has developed a [C++ version of
-WebGraph](http://cnets.indiana.edu/groups/nan/webgraph/) that you might
-want to try. The library exposes a
-[BVGraph](docs/it/unimi/dsi/webgraph/BVGraph.html) as an object of the
-[Boost Graph Library](http://www.boost.org/libs/graph/doc/index.html), so
-it is easily integrable with other code.
-
-## pyWebgraph
-
-[Massimo Santini](http://santini.di.unimi.it/) has developed a [front-end
-that interfaces Jython with
-WebGraph](http://code.google.com/p/py-web-graph/). It makes exploring
-small portions of very large graphs very easy and interactive.
+There are [Python bindings](https://pypi.org/project/webgraph/) for WebGraph.
 
 # Papers
 
