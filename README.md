@@ -61,8 +61,8 @@ version](https://github.com/vigna/webgraph-big).
 
 ## Users of WebGraph
 
-<a href="https://www.softwareheritage.org/"><img src="svg/SWH.svg" width=100></a>
-<a href="https://www.commoncrawl.org/"><img src="svg/SWH.svg" width=100></a>
+<a href="https://www.softwareheritage.org/"><img src="svg/SWH.svg" width=200></a>
+<a href="https://www.commoncrawl.org/"><img src="svg/CC.svg" width=200></a>
 
 ## JGraphT
 
