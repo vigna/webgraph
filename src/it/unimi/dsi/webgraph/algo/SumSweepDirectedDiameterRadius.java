@@ -1088,7 +1088,7 @@ public class SumSweepDirectedDiameterRadius {
 			case 5:
 				if (DEBUG)
 					LOGGER.debug("Performing a forward BFS, from a vertex maximizing the distance sum.");
-				this.stepSumSweep(argMax(totDistF, uF, toCompleteF), false);
+				this.stepSumSweep(argMax(totDistF, uF, toCompleteF), true);
 				break;
 			}
 			oldMissingNodes = missingNodes;
