@@ -46,6 +46,11 @@ gathered from public sources (such as
 [WebBase](http://www-diglib.stanford.edu/~testbed/doc2/WebBase/)), or
 produced by [UbiCrawler](http://law.di.unimi.it/ubicrawler) and BUbiNG.
 
+7. Other large-scale graphs in WebGraph format include [Software-Heritage version-control-history graphs](https://docs.softwareheritage.org/devel/swh-dataset/graph/dataset.html)
+and [MS-Biographs sequence similarity graphs](https://dx.doi.org/10.21227/gmd9-1534).
+
+8. Refer to [https://webgraph.di.unimi.it/docs](https://webgraph.di.unimi.it/docs) for WebGraph's documentation.
+
 In the end, with WebGraph you can access and analyse very large web
 graphs. Using WebGraph is as easy as installing a few jar files and
 downloading a dataset. This makes studying phenomena such as PageRank,
@@ -73,6 +78,13 @@ few <a href="https://jgrapht.org/guide/WebGraphAdapters">WebGraph adapters</a>.
 ## Python
 
 There are [Python bindings](https://pypi.org/project/webgraph/) for WebGraph.
+
+## ParaGrapher
+
+[ParaGrapher](https://github.com/MohsenKoohi/ParaGrapher) is a C/C++ wrapper for the Java implementation of WebGraph,
+facilitating loading large-scale graphs in C/C++ graph processing frameworks.
+Additionally, it features PG-Fuse, a user-level filesystem that enhances performance by 
+loading and caching blocks in larger granularity, particularly when interacting with parallel or distributed file systems like Lustre.
 
 # Papers
 
